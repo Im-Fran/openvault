@@ -30,3 +30,6 @@ Pide la contraseña maestra por TTY; en CI usa `OPENVAULT_PASSWORD`. Los secreto
 - Vault en `~/Library/Application Support/OpenVault/vault.ovault` (`0600`), AES-256-GCM con clave PBKDF2-SHA256 (600k iteraciones).
 - La app y el CLI escriben con lock + lectura previa, así no se pisan.
 - Auto-bloqueo por inactividad, al dormir y al bloquear pantalla. El portapapeles se limpia solo y se marca como oculto para gestores de portapapeles.
+
+## Licencia
+OpenVault es software libre bajo la [GNU GPL v3](LICENSE).
