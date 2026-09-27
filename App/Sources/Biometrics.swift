@@ -7,7 +7,7 @@ import Security
 nonisolated enum Biometrics {
     private static var base: [String: Any] { [
         kSecClass as String: kSecClassGenericPassword,
-        kSecAttrService as String: "dev.openvault.masterkey",
+        kSecAttrService as String: "cl.franciscosolis.openvault.masterkey",
         kSecAttrAccount as String: "vault",
         kSecUseDataProtectionKeychain as String: true,
     ] }

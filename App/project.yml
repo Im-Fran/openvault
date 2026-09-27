@@ -1,6 +1,6 @@
 name: OpenVault
 options:
-  bundleIdPrefix: dev.openvault
+  bundleIdPrefix: cl.franciscosolis
   deploymentTarget:
     macOS: "26.0"
 packages:
@@ -13,7 +13,7 @@ settings:
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     # Set your Team ID to enable Touch ID (data-protection Keychain needs a signed app).
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: PX7HA29NR3
     CODE_SIGN_STYLE: Automatic
 targets:
   OpenVault:
@@ -25,7 +25,7 @@ targets:
         product: OpenVaultCore
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.openvault.app
+        PRODUCT_BUNDLE_IDENTIFIER: cl.franciscosolis.openvault
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: NO
         GENERATE_INFOPLIST_FILE: YES
