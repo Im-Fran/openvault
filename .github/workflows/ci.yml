@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Core + CLI
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - run: swift test
+      - run: swift build -c release --product ovault
+
+  app:
+    name: App
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: make project
+      - run: >
+          xcodebuild -project App/OpenVault.xcodeproj -scheme OpenVault -configuration Release
+          -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
