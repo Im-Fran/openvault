@@ -1,0 +1,33 @@
+name: OpenVault
+options:
+  bundleIdPrefix: dev.openvault
+  deploymentTarget:
+    macOS: "26.0"
+packages:
+  OpenVault:
+    path: ..
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Set your Team ID to enable Touch ID (data-protection Keychain needs a signed app).
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+targets:
+  OpenVault:
+    type: application
+    platform: macOS
+    sources: [Sources]
+    dependencies:
+      - package: OpenVault
+        product: OpenVaultCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.openvault.app
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: NO
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: OpenVault
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
