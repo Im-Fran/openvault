@@ -1,0 +1,121 @@
+name: Release
+
+# Push a tag like v0.1.0 to build, sign (Developer ID), notarize and publish
+# OpenVault.app and the ovault CLI. Required secrets: see .github/RELEASING.md.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    env:
+      TEAM_ID: PX7HA29NR3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "KEYCHAIN=$RUNNER_TEMP/signing.keychain-db" >> "$GITHUB_ENV"
+          echo "let ovaultVersion = \"$VERSION\"" > Sources/ovault/Version.swift
+
+      - name: Import signing certificate and profile
+        env:
+          CERT_P12: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
+          PROFILE: ${{ secrets.DEVELOPER_ID_PROFILE }}
+          ASC_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          KC_PASSWORD="$(uuidgen)"
+          security create-keychain -p "$KC_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KC_PASSWORD" "$KEYCHAIN"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KC_PASSWORD" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+
+          PROFILE_PATH="$RUNNER_TEMP/profile.provisionprofile"
+          echo "$PROFILE" | base64 --decode > "$PROFILE_PATH"
+          PROFILE_PLIST="$(security cms -D -i "$PROFILE_PATH")"
+          UUID="$(plutil -extract UUID raw - <<< "$PROFILE_PLIST")"
+          PROFILE_NAME="$(plutil -extract Name raw - <<< "$PROFILE_PLIST")"
+          for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+            mkdir -p "$dir" && cp "$PROFILE_PATH" "$dir/$UUID.provisionprofile"
+          done
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+
+          echo "$ASC_KEY_P8" > "$RUNNER_TEMP/asc_key.p8"
+
+      - name: Test
+        run: swift test
+
+      - name: Build and sign app
+        run: |
+          brew install xcodegen
+          make project
+          xcodebuild archive -project App/OpenVault.xcodeproj -scheme OpenVault -configuration Release \
+            -archivePath "$RUNNER_TEMP/OpenVault.xcarchive" \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Developer ID Application" \
+            DEVELOPMENT_TEAM="$TEAM_ID" PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN"
+          cp App/ExportOptions.plist "$RUNNER_TEMP/ExportOptions.plist"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" \
+            -c "Add :provisioningProfiles:cl.franciscosolis.openvault string $PROFILE_NAME" "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/OpenVault.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export"
+
+      - name: Build and sign CLI (universal)
+        run: |
+          ARCHS=(--arch arm64 --arch x86_64)
+          swift build -c release --product ovault "${ARCHS[@]}"
+          BIN="$(swift build -c release --product ovault "${ARCHS[@]}" --show-bin-path)"
+          mkdir -p "$RUNNER_TEMP/cli" && cp "$BIN/ovault" "$RUNNER_TEMP/cli/ovault"
+          codesign --force --options runtime --timestamp --keychain "$KEYCHAIN" \
+            --sign "Developer ID Application" "$RUNNER_TEMP/cli/ovault"
+
+      - name: Notarize
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          notarize() {
+            xcrun notarytool submit "$1" --key "$RUNNER_TEMP/asc_key.p8" \
+              --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" --wait --timeout 30m
+          }
+          mkdir -p dist
+          APP="$RUNNER_TEMP/export/OpenVault.app"
+          ditto -c -k --keepParent "$APP" "$RUNNER_TEMP/app.zip"
+          notarize "$RUNNER_TEMP/app.zip"
+          xcrun stapler staple "$APP"
+          ditto -c -k --keepParent "$APP" "dist/OpenVault-$VERSION.zip"
+
+          # A bare binary can't be stapled; Gatekeeper checks the ticket online.
+          ditto -c -k "$RUNNER_TEMP/cli/ovault" "dist/ovault-$VERSION-macos-universal.zip"
+          notarize "dist/ovault-$VERSION-macos-universal.zip"
+
+          cd dist && shasum -a 256 *.zip > checksums.txt
+
+      - name: Verify
+        run: |
+          spctl --assess --type execute --verbose "$RUNNER_TEMP/export/OpenVault.app"
+          codesign --verify --strict --verbose=2 "$RUNNER_TEMP/cli/ovault"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "OpenVault $VERSION" --generate-notes --verify-tag
+
+      - name: Clean up keychain
+        if: always()
+        run: |
+          security delete-keychain "$KEYCHAIN" || true
+          rm -f "$RUNNER_TEMP/asc_key.p8"

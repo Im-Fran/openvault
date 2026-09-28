@@ -146,6 +146,8 @@ make app        # compila OpenVault.app en build/
 make clean      # borra artefactos de build y el proyecto generado
 ```
 
+Las releases (app y CLI firmados con Developer ID y notarizados) se publican al subir un tag `v*`; ver [.github/RELEASING.md](.github/RELEASING.md).
+
 Estructura:
 
 ```

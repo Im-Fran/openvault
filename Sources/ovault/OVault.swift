@@ -7,6 +7,7 @@ struct OVault: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "ovault",
         abstract: "Usa los secretos de OpenVault en tus proyectos.",
+        version: ovaultVersion,
         subcommands: [Init.self, SetCommand.self, Import.self, Get.self, Export.self, Run.self, List.self]
     )
 }

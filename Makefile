@@ -19,7 +19,7 @@ project:
 
 app: project
 	xcodebuild -project App/OpenVault.xcodeproj -scheme OpenVault -configuration Release \
-		-derivedDataPath $(BUILD_DIR) -quiet build
+		-derivedDataPath $(BUILD_DIR) -allowProvisioningUpdates -quiet build
 	@echo "App: $(BUILD_DIR)/Build/Products/Release/OpenVault.app"
 
 open: app
