@@ -59,6 +59,12 @@ extension EnvironmentValues {
     @Entry var revealAll = false
 }
 
+/// Brand gradient (160°), from assets/brand/BRAND.md. Only for the icon, lock screen and hero pieces.
+enum Brand {
+    static let gradient = LinearGradient(colors: [Color(.brandStart), Color(.brandEnd)],
+                                         startPoint: .init(x: 0.33, y: 0.03), endPoint: .init(x: 0.67, y: 0.97))
+}
+
 enum Motion {
     /// Critically damped: the house default for anything that isn't driven by momentum.
     static let standard = Animation.spring(duration: 0.35, bounce: 0)

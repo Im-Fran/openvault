@@ -16,10 +16,11 @@ struct LockView: View {
 
     var body: some View {
         VStack(spacing: 22) {
-            Image(systemName: isSetup ? "lock.shield" : "lock.fill")
-                .font(.system(size: 44, weight: .medium))
-                .foregroundStyle(.tint)
-                .symbolEffect(.bounce, value: failures)
+            Image(.brandMark)
+                .resizable()
+                .frame(width: 56, height: 56)
+                .foregroundStyle(Brand.gradient)
+                .accessibilityHidden(true)
 
             VStack(spacing: 6) {
                 Text(isSetup ? "Crea tu vault" : "OpenVault está bloqueado")
@@ -99,7 +100,7 @@ struct LockView: View {
         .background(.regularMaterial, in: .rect(cornerRadius: 20))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            LinearGradient(colors: [.accentColor.opacity(0.25), .clear, .purple.opacity(0.15)],
+            LinearGradient(colors: [Color(.brandStart).opacity(0.22), .clear, Color(.brandEnd).opacity(0.18)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
                 .ignoresSafeArea()
         }

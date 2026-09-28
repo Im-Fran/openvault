@@ -1,6 +1,9 @@
 <div align="center">
 
-# 🔐 OpenVault
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/svg/lockup-dark.svg">
+  <img src="assets/brand/svg/lockup-light.svg" width="480" alt="OpenVault">
+</picture>
 
 **Gestor de secretos para desarrolladores en macOS: `.env`, API keys, claves SSH y GPG en un vault cifrado, con un CLI para usarlos en tus proyectos.**
 
@@ -150,6 +153,7 @@ Sources/OpenVaultCore/   cifrado, formato del vault, parser .env, .openvault
 Sources/ovault/          CLI
 Tests/                   tests del núcleo
 App/                     app SwiftUI (project.yml + Sources/)
+assets/                  branding: ícono, logotipos, paleta (ver assets/README.md)
 ```
 
 ---
