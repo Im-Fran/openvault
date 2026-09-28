@@ -1,0 +1,8 @@
+# Signing material lives encrypted in a private repo, so a new machine or a CI
+# runner can sign without anyone exporting a .p12 by hand. It can be the same
+# repo other apps of the team use: the Developer ID certificate is per team.
+git_url(ENV["MATCH_REPOSITORY_URL"])
+storage_mode("git")
+
+platform("macos")
+app_identifier(["cl.franciscosolis.openvault"])

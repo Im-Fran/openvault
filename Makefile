@@ -1,7 +1,7 @@
 PREFIX ?= $(HOME)/.local
 BUILD_DIR := build
 
-.PHONY: test cli install-cli project app open clean
+.PHONY: test cli install-cli project app open dmg release clean
 
 test:
 	swift test
@@ -24,6 +24,15 @@ app: project
 
 open: app
 	open $(BUILD_DIR)/Build/Products/Release/OpenVault.app
+
+## Unsigned-app DMG for a quick local check (fastlane, see .github/RELEASING.md)
+dmg:
+	bundle exec fastlane build signed:false
+	bundle exec fastlane dmg
+
+## Signed and notarized DMG + CLI into build/dist (needs fastlane/.env)
+release:
+	bundle exec fastlane release
 
 clean:
 	rm -rf .build $(BUILD_DIR) App/OpenVault.xcodeproj

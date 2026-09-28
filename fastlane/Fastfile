@@ -1,0 +1,199 @@
+# OpenVault — build, sign, notarize and package the app and the ovault CLI.
+#
+# The Xcode project is generated from App/project.yml by XcodeGen and is not
+# committed, so every lane regenerates it first.
+# Pass signed:false where no signing certificate exists (CI checks).
+
+ROOT = File.expand_path("..", __dir__)
+PROJECT = "App/OpenVault.xcodeproj"
+SCHEME = "OpenVault"
+BUILD_DIR = "build"
+DIST_DIR = "#{BUILD_DIR}/dist"
+TEAM_ID = File.read(File.join(ROOT, "App/project.yml"))[/DEVELOPMENT_TEAM:\s*(\S+)/, 1]
+VERSION_FILE = File.join(ROOT, "Sources/ovault/Version.swift")
+
+# Keep the match passphrase out of any file on disk: locally it can come from
+# the login keychain. CI passes MATCH_PASSWORD as a secret.
+if ENV["MATCH_PASSWORD"].to_s.empty?
+  keychain_password = `security find-generic-password -s fastlane-match-openvault -w 2>/dev/null`.strip
+  ENV["MATCH_PASSWORD"] = keychain_password unless keychain_password.empty?
+end
+
+default_platform(:mac)
+
+platform :mac do
+  before_all do
+    # A throwaway keychain on CI: match has nowhere to put certificates
+    # otherwise, and the runner's login keychain is locked.
+    setup_ci if is_ci
+    sh("xcodegen", "generate", "--quiet", "--spec", "#{ROOT}/App/project.yml")
+  end
+
+  # One App Store Connect key drives match and notarization.
+  # Locally it is the .p8 on disk; CI passes the same key as a base64 secret.
+  private_lane :api_key do
+    key_id = ENV.fetch("ASC_KEY_ID")
+    key_content = ENV["ASC_KEY_CONTENT"]
+
+    if key_content.to_s.empty?
+      app_store_connect_api_key(
+        key_id: key_id,
+        issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+        key_filepath: File.expand_path("~/.appstoreconnect/private_keys/AuthKey_#{key_id}.p8")
+      )
+    else
+      app_store_connect_api_key(
+        key_id: key_id,
+        issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+        key_content: key_content,
+        is_key_content_base64: true
+      )
+    end
+  end
+
+  desc "Sync the Developer ID certificate and profile from the match repo"
+  lane :certificates do |options|
+    # The Developer ID *certificate* cannot be created through the App Store
+    # Connect API (Account Holder only). If the match repo doesn't have it yet,
+    # import it once: `bundle exec fastlane match import --type developer_id`.
+    # The profile is ordinary and match creates it when not readonly.
+    match(type: "developer_id", api_key: api_key, readonly: options.fetch(:readonly, is_ci))
+  end
+
+  desc "Run the core tests"
+  lane :test do
+    sh("swift", "test", "--package-path", ROOT)
+  end
+
+  desc "Build OpenVault.app into build/"
+  lane :build do |options|
+    build_mac_app(
+      project: PROJECT,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "developer-id",
+      codesigning_identity: options[:signed] == false ? nil : "Developer ID Application",
+      skip_codesigning: options[:signed] == false,
+      skip_package_pkg: true,
+      derived_data_path: "#{BUILD_DIR}/DerivedData",
+      output_directory: BUILD_DIR,
+      archive_path: "#{BUILD_DIR}/OpenVault.xcarchive",
+      xcargs: build_xcargs(options)
+    )
+  end
+
+  desc "Build the universal ovault CLI into build/, signed with Developer ID"
+  lane :cli do |options|
+    cli = build_cli(options[:version], signed: options[:signed] != false)
+    UI.success("Built #{cli}")
+    cli
+  end
+
+  desc "Package the already-built app into a DMG, without notarizing"
+  lane :dmg do
+    app = "#{BUILD_DIR}/OpenVault.app"
+    UI.user_error!("build first: no #{app}") unless File.exist?(File.join(ROOT, app))
+    UI.success("Packaged #{package_dmg(app)}")
+  end
+
+  desc "Build, sign and notarize the DMG and the CLI that ship on GitHub"
+  lane :release do |options|
+    key = api_key
+    match(type: "developer_id", api_key: key, readonly: true)
+
+    # On macOS the profile is embedded while archiving, not while exporting.
+    profile = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING].values.first
+
+    app = build(version: options[:version], build_number: options[:build_number], profile: profile)
+    unless File.exist?(File.join(ROOT, BUILD_DIR, "OpenVault.app/Contents/embedded.provisionprofile"))
+      UI.user_error!("the exported app has no embedded.provisionprofile (Touch ID needs it)")
+    end
+
+    # Notarize the app first so the ticket is stapled into what people run,
+    # then the disk image they download.
+    notarize(package: app, api_key: key, print_log: true)
+    dmg = package_dmg(app)
+    notarize(package: dmg, api_key: key, print_log: true)
+
+    # A bare binary can't be stapled; Gatekeeper checks its ticket online.
+    version = app_version(app)
+    cli_zip = File.join(ROOT, DIST_DIR, "ovault-#{version}-macos-universal.zip")
+    sh("ditto", "-c", "-k", build_cli(version, signed: true), cli_zip)
+    notarize(package: cli_zip, api_key: key, skip_stapling: true, print_log: true)
+
+    Dir.chdir(File.join(ROOT, DIST_DIR)) do
+      sh("shasum -a 256 *.dmg *.zip > checksums.txt")
+    end
+    UI.success("Release artifacts in #{DIST_DIR}")
+  end
+end
+
+# dmgbuild writes the image's .DS_Store directly; the Finder/AppleScript route
+# for the background is silently dropped on current macOS.
+VOLUME = "OpenVault"
+DMGBUILD_VERSION = "1.6.7"
+
+def build_xcargs(options)
+  args = []
+  if options[:signed] == false
+    args << "CODE_SIGNING_ALLOWED=NO"
+  else
+    # Package targets carry no team, and default to automatic signing, which
+    # conflicts with the identity gym passes to every target.
+    args << "DEVELOPMENT_TEAM=#{TEAM_ID}"
+    args << "CODE_SIGN_STYLE=Manual"
+  end
+  args << "MARKETING_VERSION=#{options[:version]}" if options[:version]
+  args << "CURRENT_PROJECT_VERSION=#{options[:build_number]}" if options[:build_number]
+  args << "PROVISIONING_PROFILE_SPECIFIER='#{options[:profile]}'" if options[:profile]
+  args.join(" ") unless args.empty?
+end
+
+def app_version(app)
+  app_abs = File.expand_path(app, ROOT)
+  version = `plutil -extract CFBundleShortVersionString raw -o - "#{app_abs}/Contents/Info.plist"`.strip
+  UI.user_error!("no CFBundleShortVersionString in #{app_abs}") if version.empty?
+  version
+end
+
+def package_dmg(app)
+  app_abs = File.expand_path(app, ROOT)
+  FileUtils.mkdir_p(File.join(ROOT, DIST_DIR))
+  dmg = File.join(ROOT, DIST_DIR, "OpenVault-#{app_version(app)}.dmg")
+  FileUtils.rm_f(dmg)
+
+  # uvx runs dmgbuild without installing it; pinned for reproducible releases.
+  sh("uvx", "dmgbuild@#{DMGBUILD_VERSION}",
+     "--no-hidpi",
+     "-s", File.join(ROOT, "packaging", "dmg-settings.py"),
+     "-D", "app=#{app_abs}",
+     "-D", "background=#{File.join(ROOT, 'packaging', 'dmg-background.png')}",
+     VOLUME, dmg)
+
+  sh("codesign", "--sign", "Developer ID Application", "--timestamp", dmg)
+  dmg
+end
+
+# Universal binary with the version baked in. Version.swift is restored after,
+# so a local run leaves the tree clean.
+def build_cli(version, signed:)
+  original = File.read(VERSION_FILE)
+  archs = ["--arch", "arm64", "--arch", "x86_64"]
+  begin
+    File.write(VERSION_FILE, "// Replaced by the release lane with the app version.\nlet ovaultVersion = \"#{version}\"\n") if version
+    sh("swift", "build", "--package-path", ROOT, "-c", "release", "--product", "ovault", *archs)
+    bin_dir = sh("swift", "build", "--package-path", ROOT, "-c", "release", "--product", "ovault", *archs,
+                 "--show-bin-path", log: false).strip
+  ensure
+    File.write(VERSION_FILE, original)
+  end
+
+  cli = File.join(ROOT, BUILD_DIR, "ovault")
+  FileUtils.mkdir_p(File.dirname(cli))
+  FileUtils.cp(File.join(bin_dir, "ovault"), cli)
+  if signed
+    sh("codesign", "--force", "--options", "runtime", "--timestamp",
+       "--sign", "Developer ID Application", cli)
+  end
+  cli
+end

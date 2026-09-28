@@ -146,7 +146,7 @@ make app        # compila OpenVault.app en build/
 make clean      # borra artefactos de build y el proyecto generado
 ```
 
-Las releases (app y CLI firmados con Developer ID y notarizados) se publican al subir un tag `v*`; ver [.github/RELEASING.md](.github/RELEASING.md).
+La firma, el DMG y la notarización van con [fastlane](fastlane/Fastfile) (`make dmg` para un DMG local de prueba). Las releases se publican al subir un tag `v*`; ver [.github/RELEASING.md](.github/RELEASING.md).
 
 Estructura:
 

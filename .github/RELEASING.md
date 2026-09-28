@@ -1,49 +1,95 @@
 # Publicar una release
 
-El workflow [`release.yml`](workflows/release.yml) se ejecuta al subir un tag `v*`. Compila, firma con **Developer ID**, notariza y publica en GitHub Releases:
+La firma, compilación, notarización y el DMG los hace **fastlane** (`fastlane/Fastfile`). El workflow [`release.yml`](workflows/release.yml) corre el lane `release` en cada tag y publica en GitHub Releases:
 
-- `OpenVault-<versión>.zip` — la app, notarizada y con el ticket *stapled*.
+- `OpenVault-<versión>.dmg` — la app notarizada y con el ticket *stapled*, en un DMG también notarizado.
 - `ovault-<versión>-macos-universal.zip` — el CLI (arm64 + x86_64), firmado y notarizado.
 - `checksums.txt` — SHA-256 de ambos.
 
 ```sh
-git tag v0.1.0
+git tag v0.1.0        # o v0.1.0+7 para fijar el build number
 git push origin v0.1.0
 ```
 
 La versión del tag se usa como `MARKETING_VERSION` de la app y como `ovault --version`.
 
-## Secrets del repositorio (una sola vez)
+## Lanes
 
-*Settings → Secrets and variables → Actions → New repository secret*
+| Comando | Qué hace |
+|---|---|
+| `bundle exec fastlane certificates` | Sincroniza el certificado y el perfil Developer ID desde el repo de match (en local puede crear el perfil) |
+| `bundle exec fastlane test` | `swift test` |
+| `bundle exec fastlane build [signed:false]` | Compila `build/OpenVault.app` (Developer ID, o sin firma) |
+| `bundle exec fastlane cli [version:x.y.z]` | CLI universal firmado en `build/ovault` |
+| `bundle exec fastlane dmg` | Empaqueta la app ya compilada en `build/dist/OpenVault-<versión>.dmg` (sin notarizar) |
+| `bundle exec fastlane release [version:x.y.z build_number:n]` | Todo lo anterior, con notarización; resultado en `build/dist/` |
 
-| Secret | Qué es | Cómo obtenerlo |
-|---|---|---|
-| `DEVELOPER_ID_CERT_P12` | Certificado *Developer ID Application* + clave privada, en base64 | Acceso a Llaveros → *Developer ID Application: Francisco Solis (PX7HA29NR3)* → Exportar como `.p12`. Luego `base64 -i cert.p12 \| pbcopy` |
-| `DEVELOPER_ID_CERT_PASSWORD` | Contraseña con la que exportaste el `.p12` | — |
-| `DEVELOPER_ID_PROFILE` | Perfil de aprovisionamiento *Developer ID* de la app, en base64 | developer.apple.com → *Profiles* → **+** → *Developer ID* → App ID `cl.franciscosolis.openvault` → certificado Developer ID. Descárgalo y `base64 -i OpenVault.provisionprofile \| pbcopy` |
-| `ASC_API_KEY_P8` | Contenido del archivo `.p8` de la API key (texto tal cual) | App Store Connect → *Users and Access* → *Integrations* → *App Store Connect API* → nueva key con rol **Developer** |
-| `ASC_API_KEY_ID` | Key ID de esa API key | Misma pantalla |
-| `ASC_API_ISSUER_ID` | Issuer ID | Misma pantalla, arriba de la lista |
+Atajos: `make dmg` (DMG local sin firma de app) y `make release`.
 
-Con `gh`:
+Requisitos locales: `bundle install`, `brew install xcodegen uv` (dmgbuild corre con `uvx`).
+
+## Configuración (una sola vez)
+
+### 1. API key de App Store Connect
+
+App Store Connect → *Users and Access* → *Integrations* → *App Store Connect API* → nueva key con rol **Admin** (match la usa para crear el perfil; para solo notarizar basta Developer). Guarda el `.p8` en `~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8`.
+
+### 2. Repo de match
+
+Un repo git **privado** donde match guarda cifrados el certificado y los perfiles. Puede ser el mismo que usan otras apps del Team (p. ej. el de OpenBattery): el certificado Developer ID es uno por Team y cada app agrega su perfil.
+
+El certificado Developer ID **no se puede crear por API** (solo el Account Holder, de forma interactiva). Si el repo aún no lo tiene, impórtalo una vez desde el `.p12` exportado de Acceso a Llaveros:
 
 ```sh
-gh secret set DEVELOPER_ID_CERT_P12 < <(base64 -i cert.p12)
-gh secret set DEVELOPER_ID_CERT_PASSWORD
-gh secret set DEVELOPER_ID_PROFILE < <(base64 -i OpenVault.provisionprofile)
-gh secret set ASC_API_KEY_P8 < AuthKey_XXXXXXXXXX.p8
-gh secret set ASC_API_KEY_ID
-gh secret set ASC_API_ISSUER_ID
+bundle exec fastlane match import --type developer_id --platform macos
 ```
+
+### 3. `fastlane/.env`
+
+```sh
+cp fastlane/.env.example fastlane/.env   # y completa los valores; está en .gitignore
+bundle exec fastlane certificates readonly:false   # crea el perfil Developer ID de OpenVault
+```
+
+`MATCH_PASSWORD` puede ir en el llavero en vez del `.env`: `security add-generic-password -s fastlane-match-openvault -a match -w`.
+
+### 4. Secrets del repositorio (para el workflow)
+
+| Secret | Valor |
+|---|---|
+| `ASC_KEY_ID` | Key ID de la API key |
+| `ASC_ISSUER_ID` | Issuer ID |
+| `ASC_KEY_CONTENT` | El `.p8` en base64 |
+| `MATCH_REPOSITORY_URL` | URL del repo de match (HTTPS) |
+| `MATCH_PASSWORD` | Passphrase del repo de match |
+| `MATCH_GIT_BASIC_AUTHORIZATION` | `usuario:token` en base64, con un token de solo lectura al repo de match |
+
+```sh
+gh secret set ASC_KEY_ID
+gh secret set ASC_ISSUER_ID
+gh secret set ASC_KEY_CONTENT < <(base64 -i ~/.appstoreconnect/private_keys/AuthKey_XXXXXXXXXX.p8)
+gh secret set MATCH_REPOSITORY_URL
+gh secret set MATCH_PASSWORD
+gh secret set MATCH_GIT_BASIC_AUTHORIZATION < <(printf 'usuario:ghp_xxx' | base64)
+```
+
+En CI match corre en modo solo lectura: el perfil tiene que existir antes (paso 3).
 
 ### ¿Por qué hace falta un perfil de aprovisionamiento?
 
-La app usa el Keychain de *data protection* para guardar la clave de Touch ID, y eso requiere el entitlement `keychain-access-groups` (`App/OpenVault.entitlements`). En macOS ese entitlement solo es válido con un perfil. No necesita ninguna *capability* extra en el App ID: los perfiles ya incluyen el grupo `PX7HA29NR3.*`.
+La app guarda la clave de Touch ID en el Keychain de *data protection*, que requiere el entitlement `keychain-access-groups` (`App/OpenVault.entitlements`), y en macOS ese entitlement solo es válido con un perfil. No hace falta ninguna *capability* extra en el App ID: los perfiles ya incluyen el grupo `PX7HA29NR3.*`. El lane `release` falla si la app exportada no trae `embedded.provisionprofile`.
+
+## DMG
+
+`packaging/dmg-settings.py` define la ventana (640×400, íconos de la app y de Aplicaciones) y `packaging/dmg-background.png` el fondo con la paleta de marca. Para regenerar el fondo:
+
+```sh
+swiftc -O packaging/dmg-background.swift -o /tmp/bggen && /tmp/bggen packaging
+```
 
 ## Si algo falla
 
-- **`notarytool` rechaza el envío**: `xcrun notarytool log <submission-id> --key … --key-id … --issuer …` muestra el motivo.
-- **`No profile matching`**: el perfil expiró o no incluye el certificado actual; genera uno nuevo y actualiza `DEVELOPER_ID_PROFILE`.
-- **Cambió el certificado Developer ID**: vuelve a exportar el `.p12` y regenera el perfil (va ligado al certificado).
-- Para reintentar una release fallida: borra el tag (`git push --delete origin v0.1.0 && git tag -d v0.1.0`) y vuelve a crearlo.
+- **match no encuentra el certificado**: falta importarlo (paso 2) o `MATCH_PASSWORD` no es el del repo.
+- **`No profile matching` / no hay perfil**: corre `bundle exec fastlane certificates readonly:false` en local.
+- **Notarización rechazada**: el log sale en la salida del lane (`print_log: true`).
+- Para reintentar una release fallida: borra el tag (`git push --delete origin v0.1.0 && git tag -d v0.1.0`) y vuelve a crearlo, o usa *Run workflow* con el tag existente.
