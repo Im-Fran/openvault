@@ -121,6 +121,14 @@ project-name=mi-proyecto
 
 Con él, `ovault load -- npm run dev` y `eval "$(ovault load)"` no necesitan el nombre. Se busca en el directorio actual y hacia arriba; si en un mismo directorio hay `.ovault` y `.openvault`, gana `.ovault`.
 
+#### Carga automática (opcional)
+
+```bash
+eval "$(ovault hook zsh)"   # en ~/.zshrc (o `ovault hook bash` en ~/.bashrc)
+```
+
+Al entrar a un directorio con `.ovault` (o a un subdirectorio) el hook carga las variables del proyecto, y al salir las quita y borra los archivos temporales. Nunca pide la contraseña maestra: carga únicamente si `OPENVAULT_PASSWORD` está definida; con el vault bloqueado avisa una vez y basta con ejecutar `eval "$(ovault load)"` para desbloquear y cargar. Ojo: un repositorio ajeno con un `.ovault` que nombre uno de tus proyectos recibiría ese entorno al entrar; el hook avisa cada vez que carga.
+
 Todos los comandos aceptan `--project <nombre>` para no depender del `.ovault`/`.openvault`. Si un secreto individual y una variable de un `.env` tienen el mismo nombre, gana el secreto individual.
 
 `ovault load` también expone las **contraseñas** (`NOMBRE` y `NOMBRE_USERNAME`; un nombre como «Postgres prod» se convierte en `POSTGRES_PROD`) y los **archivos**: los escribe en un directorio temporal privado (`0700`, archivo `0600`) y exporta su ruta (`AuthKey_AB12.p8` → `AUTHKEY_AB12_P8`). Con `-- comando` los borra al terminar. Las claves SSH/GPG y los items «otros» no se cargan. Detalle en `ovault load --help`.

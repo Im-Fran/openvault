@@ -8,7 +8,7 @@ struct OVault: ParsableCommand {
         commandName: "ovault",
         abstract: "Usa los secretos de OpenVault en tus proyectos.",
         version: ovaultVersion,
-        subcommands: [Init.self, SetCommand.self, Import.self, Get.self, Export.self, Run.self, Load.self, List.self]
+        subcommands: [Init.self, SetCommand.self, Import.self, Get.self, Export.self, Run.self, Load.self, Hook.self, List.self]
     )
 }
 
@@ -42,12 +42,14 @@ func warn(_ message: String) {
     FileHandle.standardError.write(Data((message + "\n").utf8))
 }
 
-func unlock() throws -> (VaultFile, Vault, VaultKey) {
+func unlock(prompt: Bool = true) throws -> (VaultFile, Vault, VaultKey) {
     let file = VaultFile()
     guard file.exists else { throw VaultError.notFound }
     let password: String
     if let env = ProcessInfo.processInfo.environment["OPENVAULT_PASSWORD"] {
         password = env
+    } else if !prompt {
+        throw CLIError("Vault bloqueado, no se cargó nada. Ejecuta  eval \"$(ovault load)\"  para desbloquearlo y cargar el proyecto.")
     } else {
         var buf = [CChar](repeating: 0, count: 1024)
         guard let p = readpassphrase("Contraseña maestra: ", &buf, buf.count, RPP_REQUIRE_TTY) else {
@@ -235,6 +237,8 @@ struct Load: ParsableCommand {
 
     @Argument(help: "Proyecto (por defecto, el del archivo .ovault o .openvault más cercano).") var project: String?
     @Argument(parsing: .postTerminator, help: "Comando a ejecutar, después de `--`.") var command: [String] = []
+    @Flag(help: "Falla en vez de pedir la contraseña maestra si no hay OPENVAULT_PASSWORD (lo usa el hook).")
+    var noPrompt = false
 
     func run() throws {
         guard let name = try ProjectOption.resolve(project) else { return }
@@ -242,7 +246,7 @@ struct Load: ParsableCommand {
             // Printing exports to a terminal would only put the secrets on screen.
             throw CLIError("Para cargar las variables en este shell usa:  eval \"$(ovault load \(name))\"")
         }
-        let (_, vault, _) = try unlock()
+        let (_, vault, _) = try unlock(prompt: !noPrompt)
         guard vault.projects.contains(name) else { throw CLIError("El proyecto «\(name)» no existe en el vault.") }
 
         var env = vault.mergedEnv(project: name)
@@ -257,6 +261,8 @@ struct Load: ParsableCommand {
         if command.isEmpty {
             // Drop the files of a previous load in this shell, then export.
             var script = "[ -n \"${_OVAULT_TMP-}\" ] && rm -rf -- \"$_OVAULT_TMP\"\n" + Shell.exports(env)
+            // What the shell hook unsets when you leave the project.
+            script += "_OVAULT_VARS=\(Shell.quote(env.keys.sorted().joined(separator: " ")))\n"
             script += tmp.map { "_OVAULT_TMP=\(Shell.quote($0.path))\n" } ?? "unset _OVAULT_TMP\n"
             print(script, terminator: "")
             warn("ovault: «\(name)» cargado (\(env.count) variables).")
@@ -267,6 +273,60 @@ struct Load: ParsableCommand {
             throw ExitCode(try spawnAndWait(command, environment: full))
         }
     }
+}
+
+struct Hook: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Imprime un hook de shell que carga el proyecto al entrar a su directorio y lo descarga al salir.",
+        discussion: """
+        Agrégalo a tu ~/.zshrc o ~/.bashrc:
+
+            eval "$(ovault hook zsh)"
+
+        Al entrar a un directorio con un archivo .ovault (o .openvault), o a uno de sus \
+        subdirectorios, el hook ejecuta `ovault load` y exporta las variables del proyecto; \
+        al salir las quita y borra los archivos temporales.
+
+        El hook nunca pide la contraseña maestra ni se salta el desbloqueo: solo carga si \
+        OPENVAULT_PASSWORD está definida en el shell. Si no, avisa una vez al entrar al \
+        proyecto y sigue; para cargar, ejecuta tú  eval "$(ovault load)"  (pide la contraseña \
+        una vez) y el hook se encarga de descargar al salir.
+
+        El archivo .ovault solo nombra un proyecto; aun así, entrar a un repositorio ajeno que \
+        nombre uno de tus proyectos expone ese entorno a lo que ejecutes ahí. El hook avisa \
+        cada vez que carga algo.
+        """)
+
+    enum ShellKind: String, ExpressibleByArgument, CaseIterable { case zsh, bash }
+    @Argument(help: "zsh o bash.") var shell: ShellKind
+
+    func run() {
+        print(Self.script)
+        switch shell {
+        case .zsh: print("autoload -Uz add-zsh-hook && add-zsh-hook chpwd _ovault_hook\n_ovault_hook")
+        case .bash: print(#"case ";${PROMPT_COMMAND-};" in *";_ovault_hook;"*) ;; *) PROMPT_COMMAND="_ovault_hook${PROMPT_COMMAND:+;$PROMPT_COMMAND}" ;; esac"#)
+        }
+    }
+
+    // Only acts when the project root changes, so a locked vault costs one line per project, not per `cd`.
+    // ponytail: unloading unsets the variables; it does not restore a value they had before loading.
+    static let script = #"""
+    _ovault_hook() {
+      local dir="$PWD" root="" out
+      while [ -n "$dir" ]; do
+        if [ -f "$dir/.ovault" ] || [ -f "$dir/.openvault" ]; then root="$dir"; break; fi
+        dir="${dir%/*}"
+      done
+      [ "$root" = "${_OVAULT_ROOT-}" ] && return 0
+      if [ -n "${_OVAULT_VARS-}" ]; then eval "unset $_OVAULT_VARS"; fi
+      if [ -n "${_OVAULT_TMP-}" ]; then rm -rf -- "$_OVAULT_TMP"; fi
+      unset _OVAULT_VARS _OVAULT_TMP
+      _OVAULT_ROOT="$root"
+      [ -z "$root" ] && return 0
+      if out="$(command ovault load --no-prompt)"; then eval "$out"; fi
+      return 0
+    }
+    """#
 }
 
 /// Writes file items under a fresh private directory (0700, files 0600) and adds their paths to `env`.
