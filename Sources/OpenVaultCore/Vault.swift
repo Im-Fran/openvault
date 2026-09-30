@@ -31,7 +31,7 @@ public struct Vault: Codable, Sendable, Equatable {
 
 public struct Item: Codable, Sendable, Identifiable, Hashable {
     public enum Kind: String, Codable, Sendable, CaseIterable {
-        case env, secret, sshKey, gpgKey, other
+        case env, secret, password, sshKey, gpgKey, file, other
     }
 
     public var id = UUID()
@@ -43,14 +43,28 @@ public struct Item: Codable, Sendable, Identifiable, Hashable {
     public var notes = ""
     public var createdAt = Date()
     public var updatedAt = Date()
+    // Added after v1 shipped. Optional on purpose: vaults written before they existed still decode.
+    /// `.password`: login user name (the password itself is `content`).
+    public var username: String?
+    /// `.password`: site or service URL.
+    public var url: String?
+    /// `.file`: original file name.
+    public var fileName: String?
+    /// `.file`: raw bytes (any binary). Encrypted with the rest of the vault.
+    public var data: Data?
 
     public init(name: String, kind: Kind, project: String? = nil, content: String,
-                passphrase: String? = nil, notes: String = "") {
+                passphrase: String? = nil, notes: String = "", username: String? = nil,
+                url: String? = nil, fileName: String? = nil, data: Data? = nil) {
         self.name = name
         self.kind = kind
         self.project = project
         self.content = content
         self.passphrase = passphrase
         self.notes = notes
+        self.username = username
+        self.url = url
+        self.fileName = fileName
+        self.data = data
     }
 }

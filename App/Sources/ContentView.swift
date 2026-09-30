@@ -40,7 +40,7 @@ struct ContentView: View {
                     .id(item.id)
             } else {
                 ContentUnavailableView("Selecciona un item", systemImage: "key.viewfinder",
-                                       description: Text("O arrastra un .env, una clave SSH o GPG a la ventana."))
+                                       description: Text("O arrastra un .env, una clave SSH o GPG, o cualquier archivo a la ventana."))
             }
         }
         .toolbar {
@@ -91,9 +91,16 @@ struct ContentView: View {
     }
 
     private func importFile(_ url: URL?) -> Bool {
-        guard let url, let content = try? String(contentsOf: url, encoding: .utf8) else { return false }
+        guard let url else { return false }
         let name = url.lastPathComponent
-        var item = Item(name: name, kind: .detect(fileName: name, content: content), content: content)
+        var item: Item
+        if let content = try? String(contentsOf: url, encoding: .utf8) {
+            item = Item(name: name, kind: .detect(fileName: name, content: content), content: content)
+        } else if let file = Item.file(at: url) { // not text: keep the raw bytes
+            item = file
+        } else {
+            return false
+        }
         if case .project(let project) = sidebar { item.project = project }
         store.editorDraft = EditorDraft(item: item, isNew: true)
         return true

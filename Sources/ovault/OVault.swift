@@ -135,6 +135,8 @@ struct Get: ParsableCommand {
         if passphrase {
             guard let p = item.passphrase else { throw ValidationError("«\(name)» no tiene passphrase.") }
             print(p)
+        } else if item.kind == .file {
+            FileHandle.standardOutput.write(item.data ?? Data()) // raw bytes: `ovault get cert.p12 > cert.p12`
         } else {
             print(item.content)
         }

@@ -14,6 +14,8 @@ struct ItemEditorView: View {
     @State private var generating = false
     @State private var confirmDiscard = false
     @State private var generateFailed = false
+    @State private var pickingFile = false
+    @State private var fileError: String?
 
     init(draft: EditorDraft, onSave: @escaping (Item) -> Void) {
         self.draft = draft
@@ -38,7 +40,8 @@ struct ItemEditorView: View {
     }
 
     private var canSave: Bool {
-        !item.name.trimmingCharacters(in: .whitespaces).isEmpty && nameError == nil && !item.content.isEmpty
+        !item.name.trimmingCharacters(in: .whitespaces).isEmpty && nameError == nil
+            && (item.kind == .file ? item.data != nil : !item.content.isEmpty)
     }
 
     var body: some View {
@@ -67,6 +70,25 @@ struct ItemEditorView: View {
                         TextField("Valor", text: $item.content, axis: .vertical)
                             .font(.body.monospaced())
                             .lineLimit(1...6)
+                    } else if item.kind == .password {
+                        TextField("Usuario", text: optional(\.username), prompt: Text("Opcional"))
+                        HStack {
+                            Group {
+                                if showPassphrase { TextField("Contraseña", text: $item.content) }
+                                else { SecureField("Contraseña", text: $item.content) }
+                            }
+                            .font(.body.monospaced())
+                            revealButton(what: "contraseña")
+                        }
+                        TextField("URL", text: optional(\.url), prompt: Text("Opcional"))
+                    } else if item.kind == .file {
+                        if let data = item.data {
+                            LabeledContent(item.fileName ?? "Archivo", value: Int64(data.count).formatted(.byteCount(style: .file)))
+                        }
+                        Button(item.data == nil ? "Elegir archivo…" : "Reemplazar archivo…", systemImage: "doc.badge.plus") { pickingFile = true }
+                        if let fileError {
+                            Text(fileError).font(.caption).foregroundStyle(.red)
+                        }
                     } else {
                         TextEditor(text: $item.content)
                             .font(.body.monospaced())
@@ -86,7 +108,7 @@ struct ItemEditorView: View {
                     }
                 }
 
-                if item.kind != .secret, item.kind != .env {
+                if item.kind != .secret, item.kind != .env, item.kind != .password {
                     Section {
                         HStack {
                             Group {
@@ -94,16 +116,10 @@ struct ItemEditorView: View {
                                 else { SecureField("Passphrase", text: $passphrase) }
                             }
                             .font(.body.monospaced())
-                            Button {
-                                showPassphrase.toggle()
-                            } label: {
-                                Image(systemName: showPassphrase ? "eye.slash" : "eye")
-                            }
-                            .buttonStyle(.borderless)
-                            .accessibilityLabel(showPassphrase ? "Ocultar passphrase" : "Mostrar passphrase")
+                            revealButton(what: "passphrase")
                         }
                     } footer: {
-                        Text("Contraseña para descifrar la clave, si tiene.")
+                        Text(item.kind == .file ? "Contraseña del archivo, si tiene (p. ej. un .p12)." : "Contraseña para descifrar la clave, si tiene.")
                     }
                 }
 
@@ -133,14 +149,43 @@ struct ItemEditorView: View {
             Button("Seguir editando", role: .cancel) {}
         }
         .alert("No se pudo ejecutar ssh-keygen", isPresented: $generateFailed) {}
+        .fileImporter(isPresented: $pickingFile, allowedContentTypes: [.data]) { result in
+            guard let url = try? result.get() else { return }
+            guard let file = Item.file(at: url) else {
+                let limit = Int64(Item.maxFileBytes).formatted(.byteCount(style: .file))
+                fileError = "No se pudo leer el archivo o supera \(limit)."
+                return
+            }
+            fileError = nil
+            item.data = file.data
+            item.fileName = file.fileName
+            if item.name.isEmpty { item.name = file.name }
+        }
+    }
+
+    /// Text binding over an optional field: empty text is stored as nil.
+    private func optional(_ field: WritableKeyPath<Item, String?>) -> Binding<String> {
+        Binding(get: { item[keyPath: field] ?? "" }, set: { item[keyPath: field] = $0.isEmpty ? nil : $0 })
+    }
+
+    private func revealButton(what: String) -> some View {
+        Button {
+            showPassphrase.toggle()
+        } label: {
+            Image(systemName: showPassphrase ? "eye.slash" : "eye")
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel(showPassphrase ? "Ocultar \(what)" : "Mostrar \(what)")
     }
 
     private var namePrompt: String {
         switch item.kind {
         case .env: ".env.production"
         case .secret: "API_KEY"
+        case .password: "GitHub"
         case .sshKey: "id_ed25519_github"
         case .gpgKey: "Firma de commits"
+        case .file: "AuthKey_ABC123.p8"
         case .other: "Nombre"
         }
     }
@@ -149,6 +194,8 @@ struct ItemEditorView: View {
         switch item.kind {
         case .env: "Contenido .env"
         case .secret: "Valor"
+        case .password: "Credenciales"
+        case .file: "Archivo"
         case .sshKey: "Clave privada (OpenSSH)"
         case .gpgKey: "Clave armada (ASCII)"
         case .other: "Contenido"
@@ -174,6 +221,10 @@ struct ItemEditorView: View {
         let trimmedProject = project.trimmingCharacters(in: .whitespaces)
         result.project = trimmedProject.isEmpty ? nil : trimmedProject
         result.passphrase = passphrase.isEmpty ? nil : passphrase
+        // Drop fields that belong to another kind (the kind may have been switched mid-edit).
+        if result.kind != .password { result.username = nil; result.url = nil }
+        if result.kind == .file { result.content = "" } else { result.fileName = nil; result.data = nil }
+        if result.kind == .password { result.passphrase = nil }
         onSave(result)
         dismiss()
     }
