@@ -2,7 +2,7 @@
 
 ## graphify
 
-Este repo tiene un grafo de conocimiento generado con [graphify](https://github.com/safishamsi/graphify) en `graphify-out/`. Cubre código (AST de Swift/Python), docs e imágenes de marca, con comunidades detectadas y cada relación marcada como `EXTRACTED`, `INFERRED` o `AMBIGUOUS`.
+Este repo usa un grafo de conocimiento generado con [graphify](https://github.com/safishamsi/graphify) en `graphify-out/`. No se versiona: cada persona lo genera localmente con `/graphify .` (si `graphify-out/` no existe, genéralo antes de usarlo). Cubre código (AST de Swift/Python), docs e imágenes de marca, con comunidades detectadas y cada relación marcada como `EXTRACTED`, `INFERRED` o `AMBIGUOUS`.
 
 Cómo lo usamos:
 
@@ -11,7 +11,7 @@ Cómo lo usamos:
   - `/graphify path "<A>" "<B>"` — camino más corto entre dos conceptos.
   - `/graphify explain "<nodo>"` — todo lo que conecta con un nodo.
 - **Responde solo con lo que el grafo contiene.** Las relaciones `INFERRED` y `AMBIGUOUS` son hipótesis: verifícalas en el código antes de afirmarlas.
-- **Después de cambiar código o docs de forma relevante**, corre `/graphify . --update` (solo re-extrae lo que cambió; si el cambio es solo de código no usa LLM) y sube `graphify-out/` junto con el cambio.
+- **Después de cambiar código o docs de forma relevante**, corre `/graphify . --update` (solo re-extrae lo que cambió; si el cambio es solo de código no usa LLM) para mantener tu grafo local al día.
 - **Reconstrucción completa:** `/graphify .`. Las imágenes de `assets/brand/` son variantes del mismo ícono: agrúpalas por formato en vez de lanzar un agente por imagen.
 
-Se versionan `GRAPH_REPORT.md`, `graph.html` y `graph.json`. La caché, `manifest.json`, `cost.json` y los archivos `.graphify_*` son locales (contienen rutas absolutas) y están en `.gitignore`.
+`graphify-out/` completo está en `.gitignore`.

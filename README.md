@@ -177,14 +177,13 @@ Sources/ovault/          CLI
 Tests/                   tests del núcleo
 App/                     app SwiftUI (project.yml + Sources/)
 assets/                  branding: ícono, logotipos, paleta (ver assets/README.md)
-graphify-out/            grafo de conocimiento del repo (ver abajo)
 ```
 
 ### Grafo de conocimiento (graphify)
 
 [graphify](https://github.com/safishamsi/graphify) convierte el repo (código, docs e imágenes) en un grafo de conocimiento: extrae símbolos y relaciones, detecta comunidades y marca cada relación como `EXTRACTED`, `INFERRED` o `AMBIGUOUS`. Lo usamos para orientarnos en el código, y para que los agentes de IA consulten el grafo en vez de releer todo el repo.
 
-El resultado vive en `graphify-out/`:
+El resultado vive en `graphify-out/`, que no se versiona: cada persona lo genera localmente.
 
 | Archivo | Qué es |
 |---|---|
@@ -202,7 +201,7 @@ Se genera y consulta desde [Claude Code](https://claude.com/claude-code) con el 
 /graphify explain "VaultKey"
 ```
 
-Si cambias código o docs de forma relevante, corre `/graphify . --update` y sube `graphify-out/` en el mismo PR. La caché, el manifiesto y el registro de costo son locales y están en `.gitignore`.
+La primera vez corre `/graphify .`; después, `/graphify . --update` mantiene tu grafo al día.
 
 ---
 
