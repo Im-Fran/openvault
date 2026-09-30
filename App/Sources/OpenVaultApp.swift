@@ -4,9 +4,10 @@ import SwiftUI
 @main
 struct OpenVaultApp: App {
     @State private var store = VaultStore()
+    @AppStorage("menuBarIcon") private var menuBarIcon = false
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: MainWindow.id) {
             RootView()
                 .environment(store)
                 .frame(minWidth: 860, minHeight: 540)
@@ -29,6 +30,12 @@ struct OpenVaultApp: App {
         Settings {
             SettingsView().environment(store)
         }
+
+        // Template SF Symbol: adapts to the menu bar and shows the lock state at a glance.
+        MenuBarExtra("OpenVault", systemImage: store.state == .unlocked ? "lock.open" : "lock", isInserted: $menuBarIcon) {
+            MenuBarView().environment(store)
+        }
+        .menuBarExtraStyle(.window)
     }
 }
 

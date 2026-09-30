@@ -4,6 +4,7 @@ struct SettingsView: View {
     @Environment(VaultStore.self) private var store
     @AppStorage("autoLockMinutes") private var autoLockMinutes = 5
     @AppStorage("clipboardSeconds") private var clipboardSeconds = 30
+    @AppStorage("menuBarIcon") private var menuBarIcon = false
     @State private var touchID = true
     @State private var changingPassword = false
 
@@ -29,6 +30,14 @@ struct SettingsView: View {
                 }
                 Button("Cambiar contraseña maestra…") { changingPassword = true }
                     .disabled(store.state != .unlocked)
+            }
+
+            Section {
+                Toggle("Mostrar en la barra de menús", isOn: $menuBarIcon)
+            } header: {
+                Text("Barra de menús")
+            } footer: {
+                Text("Busca y copia tus secretos desde el ícono de la barra de menús. OpenVault sigue abierto al cerrar la ventana.")
             }
 
             Section {
