@@ -6,3 +6,9 @@ build/
 fastlane/.env
 fastlane/report.xml
 fastlane/Preview.html
+
+# graphify: estado local (rutas absolutas, caché, costo)
+graphify-out/cache/
+graphify-out/manifest.json
+graphify-out/cost.json
+graphify-out/.graphify_*
