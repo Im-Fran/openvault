@@ -113,7 +113,15 @@ ovault export --format json        # entorno combinado (env | json)
 ovault list                        # items del proyecto, sin valores (-a para todos)
 ```
 
-Todos los comandos aceptan `--project <nombre>` para no depender del `.openvault`. Si un secreto individual y una variable de un `.env` tienen el mismo nombre, gana el secreto individual.
+El proyecto también se puede declarar a mano en un archivo `.ovault` (texto plano, admite comentarios con `#`; solo nombra el proyecto, nunca contiene secretos):
+
+```ini
+project-name=mi-proyecto
+```
+
+Con él, `ovault load -- npm run dev` y `eval "$(ovault load)"` no necesitan el nombre. Se busca en el directorio actual y hacia arriba; si en un mismo directorio hay `.ovault` y `.openvault`, gana `.ovault`.
+
+Todos los comandos aceptan `--project <nombre>` para no depender del `.ovault`/`.openvault`. Si un secreto individual y una variable de un `.env` tienen el mismo nombre, gana el secreto individual.
 
 `ovault load` también expone las **contraseñas** (`NOMBRE` y `NOMBRE_USERNAME`; un nombre como «Postgres prod» se convierte en `POSTGRES_PROD`) y los **archivos**: los escribe en un directorio temporal privado (`0700`, archivo `0600`) y exporta su ruta (`AuthKey_AB12.p8` → `AUTHKEY_AB12_P8`). Con `-- comando` los borra al terminar. Las claves SSH/GPG y los items «otros» no se cargan. Detalle en `ovault load --help`.
 

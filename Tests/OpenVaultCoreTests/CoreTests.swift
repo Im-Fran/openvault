@@ -102,7 +102,31 @@ private func tempDir() throws -> URL {
     let nested = root.appending(path: "a/b/c")
     try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
     try ProjectConfig(project: "demo").write(to: root)
-    #expect(ProjectConfig.find(from: nested)?.project == "demo")
+    #expect(try ProjectConfig.find(from: nested)?.project == "demo")
+}
+
+@Test func dotOvaultFileNamesTheProject() throws {
+    #expect(ProjectConfig.parse("project-name=demo") == "demo")
+    #expect(ProjectConfig.parse("""
+    # which vault project this repo uses
+
+      project-name =  "my app"   # trailing comment
+    other=ignored
+    """) == "my app")
+    #expect(ProjectConfig.parse("# nothing here\nname=demo\nproject-name=\n") == nil)
+
+    let root = try tempDir()
+    let nested = root.appending(path: "a/b")
+    try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+    try ProjectConfig(project: "from-json").write(to: root) // .openvault further up
+    try Data("project-name = nearer\n".utf8).write(to: root.appending(path: "a/.ovault"))
+    #expect(try ProjectConfig.find(from: nested)?.project == "nearer")
+    #expect(try ProjectConfig.find(from: root)?.project == "from-json")
+
+    try Data("# no key\n".utf8).write(to: root.appending(path: "a/.ovault"))
+    #expect(throws: ProjectConfigError.missingProjectName(path: root.appending(path: "a/.ovault").standardizedFileURL.path)) {
+        try ProjectConfig.find(from: nested)
+    }
 }
 
 @Test func legacyVaultWithoutNewFieldsStillDecodes() throws {

@@ -15,7 +15,7 @@ struct OVault: ParsableCommand {
 // MARK: - Shared
 
 struct ProjectOption: ParsableArguments {
-    @Option(name: .shortAndLong, help: "Proyecto (por defecto, el del archivo .openvault más cercano).")
+    @Option(name: .shortAndLong, help: "Proyecto (por defecto, el del archivo .ovault o .openvault más cercano).")
     var project: String?
 
     func resolve(required: Bool = true) throws -> String? {
@@ -24,8 +24,10 @@ struct ProjectOption: ParsableArguments {
 
     static func resolve(_ explicit: String?, required: Bool = true) throws -> String? {
         let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        if let name = explicit ?? ProjectConfig.find(from: cwd)?.project { return name }
-        if required { throw ValidationError("No hay proyecto: usa --project o ejecuta `ovault init`.") }
+        if let name = try explicit ?? ProjectConfig.find(from: cwd)?.project { return name }
+        if required {
+            throw CLIError("No hay proyecto: indícalo, o crea un archivo .ovault con `project-name=mi-proyecto` (o ejecuta `ovault init`).")
+        }
         return nil
     }
 }
@@ -210,6 +212,13 @@ struct Load: ParsableCommand {
 
             eval "$(ovault load mi-proyecto)"
 
+        Sin nombre de proyecto se usa el del archivo .ovault más cercano (en el directorio \
+        actual o en alguno de sus padres). Es un archivo de texto con una línea \
+        `project-name=mi-proyecto`; admite comentarios con # y no contiene secretos:
+
+            ovault load -- npm run dev
+            eval "$(ovault load)"
+
         Qué se carga:
           · Archivos .env y secretos: sus variables tal cual (si chocan, gana el secreto).
           · Contraseñas: NOMBRE=contraseña y NOMBRE_USERNAME=usuario. Si el nombre del item \
@@ -224,7 +233,7 @@ struct Load: ParsableCommand {
         Las variables cuyo nombre no es un identificador válido se omiten con un aviso.
         """)
 
-    @Argument(help: "Proyecto.") var project: String?
+    @Argument(help: "Proyecto (por defecto, el del archivo .ovault o .openvault más cercano).") var project: String?
     @Argument(parsing: .postTerminator, help: "Comando a ejecutar, después de `--`.") var command: [String] = []
 
     func run() throws {
