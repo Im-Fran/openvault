@@ -46,6 +46,19 @@ struct ItemDetailView: View {
                     SecretRow(label: "Clave armada", value: item.content, multiline: true)
                     passphraseRow
                 }
+            case .password:
+                Section {
+                    if let username = item.username { SecretRow(label: "Usuario", value: username, masked: false) }
+                    SecretRow(label: "Contraseña", value: item.content)
+                    if let url = item.url { SecretRow(label: "URL", value: url, masked: false) }
+                }
+            case .file:
+                Section {
+                    LabeledContent("Archivo", value: item.fileName ?? item.name)
+                    LabeledContent("Tamaño", value: Int64(item.data?.count ?? 0).formatted(.byteCount(style: .file)))
+                    passphraseRow
+                    Button("Guardar en disco…", systemImage: "square.and.arrow.down") { exportFile() }
+                }
             case .other:
                 Section {
                     SecretRow(label: "Contenido", value: item.content, multiline: true)
@@ -132,6 +145,18 @@ struct ItemDetailView: View {
     @ViewBuilder private var passphraseRow: some View {
         if let passphrase = item.passphrase, !passphrase.isEmpty {
             SecretRow(label: "Passphrase", value: passphrase)
+        }
+    }
+
+    private func exportFile() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = item.fileName ?? item.name
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        // Remove first: createFile would keep the looser permissions of a file being replaced.
+        try? FileManager.default.removeItem(at: url)
+        if !FileManager.default.createFile(atPath: url.path, contents: item.data ?? Data(), attributes: [.posixPermissions: 0o600]) {
+            store.errorMessage = "No se pudo guardar «\(url.lastPathComponent)»."
         }
     }
 

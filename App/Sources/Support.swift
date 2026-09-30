@@ -7,8 +7,10 @@ extension Item.Kind {
         switch self {
         case .env: "Archivos .env"
         case .secret: "Secretos"
+        case .password: "Contraseñas"
         case .sshKey: "Claves SSH"
         case .gpgKey: "Claves GPG"
+        case .file: "Archivos"
         case .other: "Otros"
         }
     }
@@ -17,8 +19,10 @@ extension Item.Kind {
         switch self {
         case .env: "Archivo .env"
         case .secret: "Secreto"
+        case .password: "Contraseña"
         case .sshKey: "Clave SSH"
         case .gpgKey: "Clave GPG"
+        case .file: "Archivo"
         case .other: "Otro"
         }
     }
@@ -27,8 +31,10 @@ extension Item.Kind {
         switch self {
         case .env: "doc.plaintext"
         case .secret: "key"
+        case .password: "person.badge.key"
         case .sshKey: "terminal"
         case .gpgKey: "signature"
+        case .file: "doc"
         case .other: "lock.doc"
         }
     }
@@ -37,8 +43,10 @@ extension Item.Kind {
         switch self {
         case .env: .green
         case .secret: .orange
+        case .password: .red
         case .sshKey: .blue
         case .gpgKey: .purple
+        case .file: .teal
         case .other: .gray
         }
     }
@@ -51,6 +59,18 @@ extension Item.Kind {
         let lines = content.split(whereSeparator: \.isNewline).filter { !$0.hasPrefix("#") && !$0.isEmpty }
         if !lines.isEmpty, DotEnv.parse(content).count == lines.count { return .env }
         return .other
+    }
+}
+
+extension Item {
+    // ponytail: the whole vault is re-encrypted on every save, so keep files small. Raise it or
+    // store blobs outside the JSON if someone needs bigger ones.
+    static let maxFileBytes = 10 * 1024 * 1024
+
+    /// A `.file` item from a file on disk, or nil if unreadable or too big.
+    static func file(at url: URL) -> Item? {
+        guard let data = try? Data(contentsOf: url), data.count <= maxFileBytes else { return nil }
+        return Item(name: url.lastPathComponent, kind: .file, content: "", fileName: url.lastPathComponent, data: data)
     }
 }
 
