@@ -54,3 +54,11 @@ public struct Item: Codable, Sendable, Identifiable, Hashable {
         self.notes = notes
     }
 }
+
+extension [Item] {
+    /// Items whose name or project contains `query` (case-insensitive; empty matches all), sorted by name.
+    public func searched(_ query: String) -> [Item] {
+        filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) || ($0.project ?? "").localizedCaseInsensitiveContains(query) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+}

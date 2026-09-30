@@ -64,3 +64,15 @@ private func tempDir() throws -> URL {
     try ProjectConfig(project: "demo").write(to: root)
     #expect(ProjectConfig.find(from: nested)?.project == "demo")
 }
+
+@Test func searchMatchesNameOrProjectSortedByName() {
+    let items = [
+        Item(name: "stripe_key", kind: .secret, project: "shop", content: "a"),
+        Item(name: "AWS_TOKEN", kind: .secret, content: "b"),
+        Item(name: "id_ed25519", kind: .sshKey, project: "Shop", content: "c"),
+    ]
+    #expect(items.searched("").map(\.name) == ["AWS_TOKEN", "id_ed25519", "stripe_key"])
+    #expect(items.searched("aws").map(\.name) == ["AWS_TOKEN"])
+    #expect(items.searched("SHOP").map(\.name) == ["id_ed25519", "stripe_key"])
+    #expect(items.searched("secret").isEmpty) // never matches on content
+}

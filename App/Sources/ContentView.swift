@@ -23,8 +23,7 @@ struct ContentView: View {
                 case .project(let project): item.project == project
                 }
             }
-            .filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) || ($0.project ?? "").localizedCaseInsensitiveContains(search) }
-            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            .searched(search)
     }
 
     var body: some View {
@@ -136,6 +135,32 @@ private struct Sidebar: View {
     }
 }
 
+/// Kind icon, name, project and last change. Shared by the main list and the menu bar.
+struct ItemRow: View {
+    let item: Item
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: item.kind.symbol)
+                .foregroundStyle(item.kind.tint)
+                .accessibilityLabel(item.kind.singular)
+                .frame(width: 28, height: 28)
+                .background(item.kind.tint.opacity(0.14), in: .rect(cornerRadius: 7))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name).font(.body.weight(.medium)).lineLimit(1)
+                HStack(spacing: 4) {
+                    if let project = item.project { Text(project) ; Text("·") }
+                    Text(item.updatedAt, format: .relative(presentation: .named))
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
 private struct ItemList: View {
     let items: [Item]
     @Binding var selection: Item.ID?
@@ -144,24 +169,7 @@ private struct ItemList: View {
 
     var body: some View {
         List(items, selection: $selection) { item in
-            HStack(spacing: 10) {
-                Image(systemName: item.kind.symbol)
-                    .foregroundStyle(item.kind.tint)
-                    .accessibilityLabel(item.kind.singular)
-                    .frame(width: 28, height: 28)
-                    .background(item.kind.tint.opacity(0.14), in: .rect(cornerRadius: 7))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.name).font(.body.weight(.medium)).lineLimit(1)
-                    HStack(spacing: 4) {
-                        if let project = item.project { Text(project) ; Text("·") }
-                        Text(item.updatedAt, format: .relative(presentation: .named))
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                }
-            }
-            .padding(.vertical, 2)
+            ItemRow(item: item)
             .contextMenu {
                 Button("Editar") { store.editorDraft = EditorDraft(item: item, isNew: false) }
                 Button("Eliminar", role: .destructive) { pendingDelete = item }
