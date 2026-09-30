@@ -57,6 +57,46 @@ private func tempDir() throws -> URL {
     #expect(vault.mergedEnv(project: "app") == ["A": "1", "B": "override"])
 }
 
+@Test func shellQuotingSurvivesARealShell() throws {
+    let env = [
+        "PLAIN": "abc",
+        "QUOTES": "it's \"quoted\" and 'single'",
+        "DOLLAR": "$HOME `id` $(id) \\ !",
+        "MULTI": "line1\nline2\n",
+        "EMPTY": "",
+        "bad name; rm -rf /": "never exported",
+    ]
+    let script = Shell.exports(env)
+    #expect(!script.contains("never exported"))
+
+    // Let /bin/sh eval the script and print each variable back, NUL-terminated.
+    let process = Process(), out = Pipe()
+    process.executableURL = URL(fileURLWithPath: "/bin/sh")
+    process.arguments = ["-c", script + #"printf '%s\0' "$PLAIN" "$QUOTES" "$DOLLAR" "$MULTI" "$EMPTY""#]
+    process.standardOutput = out
+    try process.run()
+    let printed = String(decoding: out.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+    process.waitUntilExit()
+    #expect(printed.split(separator: "\0", omittingEmptySubsequences: false).dropLast().map(String.init)
+        == [env["PLAIN"]!, env["QUOTES"]!, env["DOLLAR"]!, env["MULTI"]!, ""])
+}
+
+@Test func envNamesForPasswordsAndFiles() {
+    #expect(Shell.envName("DB_PASSWORD") == "DB_PASSWORD")
+    #expect(Shell.envName("Postgres prod") == "POSTGRES_PROD")
+    #expect(Shell.envName("AuthKey_AB12.p8") == "AUTHKEY_AB12_P8")
+    #expect(Shell.envName("1password") == "_1PASSWORD")
+    #expect(Shell.isValidName(Shell.envName("ñandú; $(x)")))
+
+    let vault = Vault(items: [
+        Item(name: "GitHub", kind: .password, project: "app", content: "pw", username: "fran"),
+        Item(name: "cert.p12", kind: .file, project: "app", content: "", fileName: "cert.p12", data: Data([0, 1])),
+        Item(name: "deploy", kind: .sshKey, project: "app", content: "key"),
+    ])
+    #expect(vault.mergedEnv(project: "app") == ["GitHub": "pw", "GitHub_USERNAME": "fran"])
+    #expect(vault.fileEnv(project: "app").keys.sorted() == ["CERT_P12"])
+}
+
 @Test func projectConfigWalksUp() throws {
     let root = try tempDir()
     let nested = root.appending(path: "a/b/c")

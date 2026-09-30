@@ -8,7 +8,7 @@ struct OVault: ParsableCommand {
         commandName: "ovault",
         abstract: "Usa los secretos de OpenVault en tus proyectos.",
         version: ovaultVersion,
-        subcommands: [Init.self, SetCommand.self, Import.self, Get.self, Export.self, Run.self, List.self]
+        subcommands: [Init.self, SetCommand.self, Import.self, Get.self, Export.self, Run.self, Load.self, List.self]
     )
 }
 
@@ -19,11 +19,25 @@ struct ProjectOption: ParsableArguments {
     var project: String?
 
     func resolve(required: Bool = true) throws -> String? {
+        try Self.resolve(project, required: required)
+    }
+
+    static func resolve(_ explicit: String?, required: Bool = true) throws -> String? {
         let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        if let name = project ?? ProjectConfig.find(from: cwd)?.project { return name }
+        if let name = explicit ?? ProjectConfig.find(from: cwd)?.project { return name }
         if required { throw ValidationError("No hay proyecto: usa --project o ejecuta `ovault init`.") }
         return nil
     }
+}
+
+/// An error shown as a single line, without the usage text ArgumentParser adds to validation errors.
+struct CLIError: LocalizedError {
+    let errorDescription: String?
+    init(_ message: String) { errorDescription = message }
+}
+
+func warn(_ message: String) {
+    FileHandle.standardError.write(Data((message + "\n").utf8))
 }
 
 func unlock() throws -> (VaultFile, Vault, VaultKey) {
@@ -181,6 +195,116 @@ struct Run: ParsableCommand {
         execvp(command[0], argv)
         throw ValidationError("No se pudo ejecutar «\(command[0])»: \(String(cString: strerror(errno)))")
     }
+}
+
+struct Load: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Carga el entorno del proyecto en tu shell, o ejecuta un comando con él.",
+        discussion: """
+        Con comando, lo ejecuta con el entorno del proyecto y devuelve su código de salida:
+
+            ovault load mi-proyecto -- npm run dev
+
+        Sin comando, imprime líneas `export` para que las evalúe tu shell (un proceso hijo \
+        no puede modificar el entorno del shell que lo lanzó):
+
+            eval "$(ovault load mi-proyecto)"
+
+        Qué se carga:
+          · Archivos .env y secretos: sus variables tal cual (si chocan, gana el secreto).
+          · Contraseñas: NOMBRE=contraseña y NOMBRE_USERNAME=usuario. Si el nombre del item \
+        no es un nombre de variable válido se pasa a mayúsculas y lo demás se cambia por _ \
+        («Postgres prod» → POSTGRES_PROD).
+          · Archivos: se escriben en un directorio temporal privado (0700, archivo 0600) y la \
+        variable, nombrada con la misma regla («AuthKey_AB12.p8» → AUTHKEY_AB12_P8), contiene \
+        la ruta. Con comando se borran al terminar; con eval quedan hasta el siguiente \
+        `ovault load` en ese shell.
+          · Claves SSH, claves GPG y «otros» no se cargan: no tienen un mapeo claro a variables.
+
+        Las variables cuyo nombre no es un identificador válido se omiten con un aviso.
+        """)
+
+    @Argument(help: "Proyecto.") var project: String?
+    @Argument(parsing: .postTerminator, help: "Comando a ejecutar, después de `--`.") var command: [String] = []
+
+    func run() throws {
+        guard let name = try ProjectOption.resolve(project) else { return }
+        if command.isEmpty, isatty(STDOUT_FILENO) != 0 {
+            // Printing exports to a terminal would only put the secrets on screen.
+            throw CLIError("Para cargar las variables en este shell usa:  eval \"$(ovault load \(name))\"")
+        }
+        let (_, vault, _) = try unlock()
+        guard vault.projects.contains(name) else { throw CLIError("El proyecto «\(name)» no existe en el vault.") }
+
+        var env = vault.mergedEnv(project: name)
+        let invalid = env.keys.filter { !Shell.isValidName($0) }.sorted()
+        for key in invalid { env[key] = nil }
+        if !invalid.isEmpty {
+            warn("ovault: se omiten variables con nombre no válido: \(invalid.joined(separator: ", "))")
+        }
+        let files = vault.fileEnv(project: name).filter { env[$0.key] == nil }
+        let tmp = try materialize(files, into: &env)
+
+        if command.isEmpty {
+            // Drop the files of a previous load in this shell, then export.
+            var script = "[ -n \"${_OVAULT_TMP-}\" ] && rm -rf -- \"$_OVAULT_TMP\"\n" + Shell.exports(env)
+            script += tmp.map { "_OVAULT_TMP=\(Shell.quote($0.path))\n" } ?? "unset _OVAULT_TMP\n"
+            print(script, terminator: "")
+            warn("ovault: «\(name)» cargado (\(env.count) variables).")
+        } else {
+            defer { if let tmp { try? FileManager.default.removeItem(at: tmp) } }
+            var full = ProcessInfo.processInfo.environment.merging(env) { $1 }
+            full["OPENVAULT_PASSWORD"] = nil
+            throw ExitCode(try spawnAndWait(command, environment: full))
+        }
+    }
+}
+
+/// Writes file items under a fresh private directory (0700, files 0600) and adds their paths to `env`.
+func materialize(_ files: [String: Item], into env: inout [String: String]) throws -> URL? {
+    guard !files.isEmpty else { return nil }
+    var template = Array((NSTemporaryDirectory() as NSString).appendingPathComponent("ovault-XXXXXX").utf8CString)
+    guard mkdtemp(&template) != nil else { throw POSIXError(.init(rawValue: errno) ?? .EIO) }
+    let dir = URL(fileURLWithPath: String(decoding: template.dropLast().map { UInt8(bitPattern: $0) }, as: UTF8.self))
+    do {
+        for (name, item) in files {
+            // One directory per variable so every file keeps its original name without clashing.
+            let sub = dir.appending(path: name)
+            try FileManager.default.createDirectory(at: sub, withIntermediateDirectories: false,
+                                                    attributes: [.posixPermissions: 0o700])
+            var fileName = ((item.fileName ?? item.name) as NSString).lastPathComponent
+            if ["", ".", "..", "/"].contains(fileName) { fileName = "file" }
+            let path = sub.appending(path: fileName).path
+            guard FileManager.default.createFile(atPath: path, contents: item.data ?? Data(),
+                                                 attributes: [.posixPermissions: 0o600]) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            env[name] = path
+        }
+    } catch {
+        try? FileManager.default.removeItem(at: dir)
+        throw error
+    }
+    return dir
+}
+
+nonisolated(unsafe) private var childPID: pid_t = 0
+
+/// Runs `command` as a child sharing our terminal and waits for it, so temporary files can be removed afterwards.
+/// Returns its exit code (128 + signal if it was killed).
+func spawnAndWait(_ command: [String], environment: [String: String]) throws -> Int32 {
+    // Ctrl-C / Ctrl-\ reach the child directly (same foreground process group): we only need to outlive it.
+    // ponytail: a SIGINT sent to ovault's pid alone is not forwarded; forwarding would deliver Ctrl-C twice.
+    for sig in [SIGINT, SIGQUIT] { signal(sig) { _ in } }
+    for sig in [SIGTERM, SIGHUP] { signal(sig) { if childPID > 0 { kill(childPID, $0) } } }
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env") // looks the command up in PATH, then execs it
+    process.arguments = ["--"] + command
+    process.environment = environment
+    try process.run() // stdin, stdout and stderr are inherited
+    childPID = process.processIdentifier
+    process.waitUntilExit()
+    return process.terminationReason == .exit ? process.terminationStatus : 128 + process.terminationStatus
 }
 
 struct List: ParsableCommand {

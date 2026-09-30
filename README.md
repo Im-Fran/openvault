@@ -104,6 +104,8 @@ ovault init                        # crea .openvault con el nombre del proyecto 
 ovault import .env                 # importa un .env al proyecto
 echo "sk_live_..." | ovault set STRIPE_KEY   # sin VALUE lo lee de stdin (no queda en el historial)
 ovault run -- npm run dev          # ejecuta con los secretos como variables de entorno
+ovault load mi-proyecto -- npm run dev   # igual, nombrando el proyecto; incluye contraseñas y archivos
+eval "$(ovault load mi-proyecto)"  # carga las variables en el shell actual
 ovault get STRIPE_KEY              # imprime un valor
 ovault get deploy_key --passphrase # imprime la passphrase de un item
 ovault get cert.p12 > cert.p12     # un item de tipo archivo sale en crudo (binario)
@@ -112,6 +114,8 @@ ovault list                        # items del proyecto, sin valores (-a para to
 ```
 
 Todos los comandos aceptan `--project <nombre>` para no depender del `.openvault`. Si un secreto individual y una variable de un `.env` tienen el mismo nombre, gana el secreto individual.
+
+`ovault load` también expone las **contraseñas** (`NOMBRE` y `NOMBRE_USERNAME`; un nombre como «Postgres prod» se convierte en `POSTGRES_PROD`) y los **archivos**: los escribe en un directorio temporal privado (`0700`, archivo `0600`) y exporta su ruta (`AuthKey_AB12.p8` → `AUTHKEY_AB12_P8`). Con `-- comando` los borra al terminar. Las claves SSH/GPG y los items «otros» no se cargan. Detalle en `ovault load --help`.
 
 ### Variables de entorno
 

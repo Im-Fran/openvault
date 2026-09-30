@@ -15,17 +15,30 @@ public struct Vault: Codable, Sendable, Equatable {
         return items.filter { $0.project == project }
     }
 
-    /// Environment for a project: `.env` items first, then individual secrets on top (secrets win).
+    /// Environment for a project: `.env` items first, then passwords, then individual secrets on top (secrets win).
+    /// A password is exposed as `Shell.envName(name)`, plus `<NAME>_USERNAME` when it has a user name.
+    /// Files are not here (see `fileEnv`); SSH keys, GPG keys and "other" items have no env mapping.
     public func mergedEnv(project: String?) -> [String: String] {
         let scoped = items(in: project)
         var env: [String: String] = [:]
         for item in scoped where item.kind == .env {
             for (k, v) in DotEnv.parse(item.content) { env[k] = v }
         }
+        for item in scoped where item.kind == .password {
+            let name = Shell.envName(item.name)
+            env[name] = item.content
+            if let username = item.username { env[name + "_USERNAME"] = username }
+        }
         for item in scoped where item.kind == .secret {
             env[item.name] = item.content
         }
         return env
+    }
+
+    /// File items of a project keyed by the variable that should hold the path they get written to.
+    public func fileEnv(project: String?) -> [String: Item] {
+        Dictionary(items(in: project).filter { $0.kind == .file }.map { (Shell.envName($0.name), $0) },
+                   uniquingKeysWith: { $1 })
     }
 }
 
