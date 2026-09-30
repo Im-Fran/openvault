@@ -7,6 +7,7 @@ enum MainWindow {
 
     /// Brings the main window forward, opening it if it was closed.
     static func show(_ openWindow: OpenWindowAction) {
+        AppDelegate.showInDock() // before ordering front, so the window comes up with its menu bar
         // ponytail: SwiftUI names WindowGroup windows "<id>-AppWindow-N"; reuse it instead of stacking a second one.
         if let window = NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix(id) == true }) {
             window.deminiaturize(nil)

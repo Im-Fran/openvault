@@ -37,7 +37,7 @@ struct SettingsView: View {
             } header: {
                 Text("Barra de menús")
             } footer: {
-                Text("Busca y copia tus secretos desde el ícono de la barra de menús. OpenVault sigue abierto al cerrar la ventana.")
+                Text("Busca y copia tus secretos desde el ícono de la barra de menús. Al cerrar la ventana, OpenVault sale del Dock y sigue disponible desde ese ícono.")
             }
 
             Section {
