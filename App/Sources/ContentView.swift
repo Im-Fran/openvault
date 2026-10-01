@@ -31,25 +31,25 @@ struct ContentView: View {
             Sidebar(selection: $sidebar)
         } content: {
             ItemList(items: filtered, selection: $selection)
-                .searchable(text: $search, placement: .sidebar, prompt: "Buscar")
+                .searchable(text: $search, placement: .sidebar, prompt: "Search")
                 .navigationTitle(title)
         } detail: {
             if let item = store.vault.items.first(where: { $0.id == selection }) {
                 ItemDetailView(item: item)
                     .id(item.id)
             } else {
-                ContentUnavailableView("Selecciona un item", systemImage: "key.viewfinder",
-                                       description: Text("O arrastra un .env, una clave SSH o GPG, o cualquier archivo a la ventana."))
+                ContentUnavailableView("Select an Item", systemImage: "key.viewfinder",
+                                       description: Text("Or drag a .env file, an SSH or GPG key, or any file into the window."))
             }
         }
         .toolbar {
             ToolbarItem {
-                Button("Nuevo item", systemImage: "plus") { newItem() }
-                    .help("Nuevo item (⌘N)")
+                Button("New Item", systemImage: "plus") { newItem() }
+                    .help("New Item (⌘N)")
             }
             ToolbarItem {
-                Button("Bloquear", systemImage: "lock") { store.lock() }
-                    .help("Bloquear (⌘L)")
+                Button("Lock", systemImage: "lock") { store.lock() }
+                    .help("Lock (⌘L)")
             }
         }
         .sheet(item: Bindable(store).editorDraft) { draft in
@@ -75,7 +75,7 @@ struct ContentView: View {
 
     private var title: String {
         switch sidebar ?? .all {
-        case .all: "Todos"
+        case .all: String(localized: "All")
         case .kind(let kind): kind.title
         case .project(let project): project
         }
@@ -112,10 +112,10 @@ private struct Sidebar: View {
 
     var body: some View {
         List(selection: $selection) {
-            row("Todos", symbol: "tray.full", tint: .accentColor, count: store.vault.items.count)
+            row(String(localized: "All"), symbol: "tray.full", tint: .accentColor, count: store.vault.items.count)
                 .tag(SidebarSelection.all)
 
-            Section("Tipos") {
+            Section("Types") {
                 ForEach(Item.Kind.allCases, id: \.self) { kind in
                     row(kind.title, symbol: kind.symbol, tint: kind.tint,
                         count: store.vault.items.count { $0.kind == kind })
@@ -124,7 +124,7 @@ private struct Sidebar: View {
             }
 
             if !store.vault.projects.isEmpty {
-                Section("Proyectos") {
+                Section("Projects") {
                     ForEach(store.vault.projects, id: \.self) { project in
                         row(project, symbol: "folder", tint: .secondary,
                             count: store.vault.items.count { $0.project == project })
@@ -156,7 +156,7 @@ struct ItemRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name).font(.body.weight(.medium)).lineLimit(1)
                 HStack(spacing: 4) {
-                    if let project = item.project { Text(project) ; Text("·") }
+                    if let project = item.project { Text(project) ; Text(verbatim: "·") }
                     Text(item.updatedAt, format: .relative(presentation: .named))
                 }
                 .font(.caption)
@@ -178,29 +178,29 @@ private struct ItemList: View {
         List(items, selection: $selection) { item in
             ItemRow(item: item)
             .contextMenu {
-                Button("Editar") { store.editorDraft = EditorDraft(item: item, isNew: false) }
-                Button("Eliminar", role: .destructive) { pendingDelete = item }
+                Button("Edit") { store.editorDraft = EditorDraft(item: item, isNew: false) }
+                Button("Delete", role: .destructive) { pendingDelete = item }
             }
         }
         .animation(Motion.standard, value: items)
         .overlay {
             if items.isEmpty {
-                ContentUnavailableView("Sin items", systemImage: "tray",
-                                       description: Text("Crea uno con ⌘N o arrastra un archivo aquí."))
+                ContentUnavailableView("No Items", systemImage: "tray",
+                                       description: Text("Create one with ⌘N or drag a file here."))
             }
         }
         .onDeleteCommand {
             pendingDelete = items.first { $0.id == selection }
         }
-        .confirmationDialog("¿Eliminar «\(pendingDelete?.name ?? "")»?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+        .confirmationDialog("Delete “\(pendingDelete?.name ?? "")”?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
                             titleVisibility: .visible) {
-            Button("Eliminar", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 if let item = pendingDelete { store.delete(item) }
                 pendingDelete = nil
             }
-            Button("Cancelar", role: .cancel) { pendingDelete = nil }
+            Button("Cancel", role: .cancel) { pendingDelete = nil }
         } message: {
-            Text("Esta acción no se puede deshacer.")
+            Text("This action can’t be undone.")
         }
         .navigationSplitViewColumnWidth(min: 240, ideal: 280)
     }

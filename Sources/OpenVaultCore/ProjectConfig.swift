@@ -6,7 +6,7 @@ public enum ProjectConfigError: LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .missingProjectName(let path):
-            "«\(path)» no define el proyecto. Agrega una línea como: project-name=mi-proyecto"
+            String(localized: "“\(path)” doesn’t name a project. Add a line like: project-name=my-project")
         }
     }
 }

@@ -21,58 +21,58 @@ struct ItemDetailView: View {
             case .secret:
                 Section { SecretRow(label: item.name, value: item.content) }
             case .sshKey:
-                Section("Clave pública") {
+                Section("Public Key") {
                     if let ssh {
-                        SecretRow(label: "Clave pública", value: ssh.publicKey, masked: false)
+                        SecretRow(label: String(localized: "Public Key"), value: ssh.publicKey, masked: false)
                         LabeledContent("Fingerprint") { Text(ssh.fingerprint).font(.callout.monospaced()).textSelection(.enabled) }
                     } else {
-                        Text("No se pudo leer la clave pública (¿passphrase incorrecta o formato no OpenSSH?).")
+                        Text("Couldn’t read the public key. The passphrase may be wrong or the key may not be in OpenSSH format.")
                             .foregroundStyle(.secondary)
                     }
                 }
-                Section("Clave privada") {
-                    SecretRow(label: "Clave privada", value: item.content, multiline: true)
+                Section("Private Key") {
+                    SecretRow(label: String(localized: "Private Key"), value: item.content, multiline: true)
                     passphraseRow
-                    Button("Exportar a archivo…", systemImage: "square.and.arrow.up") { exportSSH() }
+                    Button("Export to File…", systemImage: "square.and.arrow.up") { exportSSH() }
                 }
             case .gpgKey:
                 if let gpg {
-                    Section("Identidad") {
-                        LabeledContent("Usuario", value: gpg.uid)
+                    Section("Identity") {
+                        LabeledContent("User ID", value: gpg.uid)
                         LabeledContent("Fingerprint") { Text(gpg.fingerprint).font(.callout.monospaced()).textSelection(.enabled) }
                     }
                 }
-                Section("Clave") {
-                    SecretRow(label: "Clave armada", value: item.content, multiline: true)
+                Section("Key") {
+                    SecretRow(label: String(localized: "Armored Key"), value: item.content, multiline: true)
                     passphraseRow
                 }
             case .password:
                 Section {
-                    if let username = item.username { SecretRow(label: "Usuario", value: username, masked: false) }
-                    SecretRow(label: "Contraseña", value: item.content)
+                    if let username = item.username { SecretRow(label: String(localized: "Username"), value: username, masked: false) }
+                    SecretRow(label: String(localized: "Password"), value: item.content)
                     if let url = item.url { SecretRow(label: "URL", value: url, masked: false) }
                 }
             case .file:
                 Section {
-                    LabeledContent("Archivo", value: item.fileName ?? item.name)
-                    LabeledContent("Tamaño", value: Int64(item.data?.count ?? 0).formatted(.byteCount(style: .file)))
+                    LabeledContent("File", value: item.fileName ?? item.name)
+                    LabeledContent("Size", value: Int64(item.data?.count ?? 0).formatted(.byteCount(style: .file)))
                     passphraseRow
-                    Button("Guardar en disco…", systemImage: "square.and.arrow.down") { exportFile() }
+                    Button("Save to Disk…", systemImage: "square.and.arrow.down") { exportFile() }
                 }
             case .other:
                 Section {
-                    SecretRow(label: "Contenido", value: item.content, multiline: true)
+                    SecretRow(label: String(localized: "Contents"), value: item.content, multiline: true)
                     passphraseRow
                 }
             }
 
             if !item.notes.isEmpty {
-                Section("Notas") { Text(item.notes).textSelection(.enabled) }
+                Section("Notes") { Text(item.notes).textSelection(.enabled) }
             }
 
             Section {
-                LabeledContent("Creado", value: item.createdAt.formatted(date: .abbreviated, time: .shortened))
-                LabeledContent("Modificado", value: item.updatedAt.formatted(date: .abbreviated, time: .shortened))
+                LabeledContent("Created", value: item.createdAt.formatted(date: .abbreviated, time: .shortened))
+                LabeledContent("Modified", value: item.updatedAt.formatted(date: .abbreviated, time: .shortened))
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -84,10 +84,10 @@ struct ItemDetailView: View {
         }
         .toolbar {
             ToolbarItem {
-                Button("Editar", systemImage: "pencil") {
+                Button("Edit", systemImage: "pencil") {
                     store.editorDraft = EditorDraft(item: item, isNew: false)
                 }
-                .help("Editar")
+                .help("Edit")
             }
         }
         .task(id: item.content + (item.passphrase ?? "")) {
@@ -121,7 +121,7 @@ struct ItemDetailView: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            Text("Mantén ⌥ para mostrar todo")
+            Text("Hold ⌥ to Reveal All")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -137,14 +137,14 @@ struct ItemDetailView: View {
             HStack {
                 Text("\(pairs.count) variables")
                 Spacer()
-                CopyButton(value: item.content, label: "Copiar .env")
+                CopyButton(value: item.content, label: String(localized: "Copy .env"))
             }
         }
     }
 
     @ViewBuilder private var passphraseRow: some View {
         if let passphrase = item.passphrase, !passphrase.isEmpty {
-            SecretRow(label: "Passphrase", value: passphrase)
+            SecretRow(label: String(localized: "Passphrase"), value: passphrase)
         }
     }
 
@@ -156,7 +156,7 @@ struct ItemDetailView: View {
         // Remove first: createFile would keep the looser permissions of a file being replaced.
         try? FileManager.default.removeItem(at: url)
         if !FileManager.default.createFile(atPath: url.path, contents: item.data ?? Data(), attributes: [.posixPermissions: 0o600]) {
-            store.errorMessage = "No se pudo guardar «\(url.lastPathComponent)»."
+            store.errorMessage = String(localized: "Couldn’t save “\(url.lastPathComponent)”.")
         }
     }
 
@@ -196,7 +196,7 @@ struct SecretRow: View {
                     .truncationMode(.middle)
                     .textSelection(.enabled)
                     .contentTransition(.opacity)
-                    .accessibilityLabel(visible ? value : "Oculto")
+                    .accessibilityLabel(visible ? value : String(localized: "Hidden"))
             }
             Spacer(minLength: 8)
             if masked {
@@ -207,10 +207,10 @@ struct SecretRow: View {
                         .contentTransition(.symbolEffect(.replace))
                 }
                 .buttonStyle(.borderless)
-                .help(visible ? "Ocultar" : "Mostrar")
-                .accessibilityLabel(visible ? "Ocultar \(label)" : "Mostrar \(label)")
+                .help(visible ? String(localized: "Hide") : String(localized: "Show"))
+                .accessibilityLabel(visible ? String(localized: "Hide \(label)") : String(localized: "Show \(label)"))
             }
-            CopyButton(value: value, label: "Copiar \(label)")
+            CopyButton(value: value, label: String(localized: "Copy \(label)"))
         }
         .padding(.vertical, 2)
     }
@@ -225,7 +225,7 @@ struct CopyButton: View {
         Button {
             Clipboard.copy(value)
             copied = true
-            AccessibilityNotification.Announcement("Copiado").post()
+            AccessibilityNotification.Announcement(String(localized: "Copied")).post()
             Task {
                 try? await Task.sleep(for: .seconds(1.5))
                 copied = false
@@ -236,7 +236,7 @@ struct CopyButton: View {
                 .contentTransition(.symbolEffect(.replace))
         }
         .buttonStyle(.borderless)
-        .help(copied ? "Copiado — se borrará del portapapeles" : label)
+        .help(copied ? String(localized: "Copied — it will be cleared from the clipboard") : label)
         .accessibilityLabel(label)
     }
 }

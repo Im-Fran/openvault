@@ -53,14 +53,14 @@ struct MenuBarView: View {
 
     private var list: some View {
         VStack(spacing: 0) {
-            TextField("Buscar", text: $search)
+            TextField("Search", text: $search)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
                 .focused($searchFocused)
                 .onSubmit { opened = highlighted ?? results.first?.id }
                 .onKeyPress(.downArrow) { moveHighlight(1) }
                 .onKeyPress(.upArrow) { moveHighlight(-1) }
-                .accessibilityLabel("Buscar credenciales y secretos")
+                .accessibilityLabel("Search credentials and secrets")
                 .padding(10)
 
             List(results, selection: $highlighted) { item in
@@ -70,13 +70,13 @@ struct MenuBarView: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .accessibilityHint("Muestra el detalle")
+                .accessibilityHint("Shows details")
             }
             .overlay {
                 if results.isEmpty {
                     if search.isEmpty {
-                        ContentUnavailableView("Sin items", systemImage: "tray",
-                                               description: Text("Crea uno desde la ventana principal."))
+                        ContentUnavailableView("No Items", systemImage: "tray",
+                                               description: Text("Create one from the main window."))
                     } else {
                         ContentUnavailableView.search(text: search)
                     }
@@ -90,10 +90,10 @@ struct MenuBarView: View {
     private func detail(_ item: Item) -> some View {
         VStack(spacing: 0) {
             HStack {
-                Button("Volver", systemImage: "chevron.left") { opened = nil }
+                Button("Back", systemImage: "chevron.left") { opened = nil }
                     .buttonStyle(.borderless)
                     .keyboardShortcut(.cancelAction)
-                    .help("Volver (esc)")
+                    .help("Back (Esc)")
                 Spacer()
             }
             .padding(10)
@@ -104,20 +104,20 @@ struct MenuBarView: View {
 
     private var footer: some View {
         HStack {
-            Button("Abrir OpenVault", systemImage: "macwindow") { MainWindow.show(openWindow) }
+            Button("Open OpenVault", systemImage: "macwindow") { MainWindow.show(openWindow) }
                 .keyboardShortcut("o")
-                .help("Abrir OpenVault (⌘O)")
+                .help("Open OpenVault (⌘O)")
             Spacer()
             if store.state == .unlocked {
-                Button("Bloquear", systemImage: "lock") { store.lock() }
+                Button("Lock", systemImage: "lock") { store.lock() }
                     .labelStyle(.iconOnly)
                     .keyboardShortcut("l")
-                    .help("Bloquear (⌘L)")
+                    .help("Lock (⌘L)")
             }
-            Button("Salir", systemImage: "power") { NSApp.terminate(nil) }
+            Button("Quit", systemImage: "power") { NSApp.terminate(nil) }
                 .labelStyle(.iconOnly)
                 .keyboardShortcut("q")
-                .help("Salir de OpenVault (⌘Q)")
+                .help("Quit OpenVault (⌘Q)")
         }
         .buttonStyle(.borderless)
         .padding(10)
@@ -148,17 +148,17 @@ private struct MenuBarLockView: View {
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             if store.state == .setup {
-                Text("Aún no tienes un vault").font(.headline)
-                Button("Crear vault…") { MainWindow.show(openWindow) }
+                Text("You don’t have a vault yet").font(.headline)
+                Button("Create Vault…") { MainWindow.show(openWindow) }
                     .buttonStyle(.borderedProminent)
             } else {
-                Text("OpenVault está bloqueado").font(.headline)
-                SecureField("Contraseña maestra", text: $password)
+                Text("OpenVault Is Locked").font(.headline)
+                SecureField("Master Password", text: $password)
                     .textFieldStyle(.roundedBorder)
                     .focused($focused)
                     .onSubmit(submit)
                 if showError {
-                    Text("Contraseña incorrecta").font(.callout).foregroundStyle(.red)
+                    Text("Incorrect password").font(.callout).foregroundStyle(.red)
                 }
                 HStack(spacing: 10) {
                     if store.biometricsEnrolled {
@@ -167,11 +167,11 @@ private struct MenuBarLockView: View {
                         } label: {
                             Image(systemName: "touchid")
                         }
-                        .help("Desbloquear con Touch ID")
-                        .accessibilityLabel("Desbloquear con Touch ID")
+                        .help("Unlock with Touch ID")
+                        .accessibilityLabel("Unlock with Touch ID")
                     }
                     Button(action: submit) {
-                        Text("Desbloquear").frame(maxWidth: .infinity)
+                        Text("Unlock").frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
@@ -195,7 +195,7 @@ private struct MenuBarLockView: View {
             if await !store.unlock(password: password) {
                 // ponytail: non-password errors land in store.errorMessage, shown by the main window's alert.
                 showError = store.errorMessage == nil
-                if showError { AccessibilityNotification.Announcement("Contraseña incorrecta").post() }
+                if showError { AccessibilityNotification.Announcement(String(localized: "Incorrect password")).post() }
                 password = ""
                 focused = true
             }

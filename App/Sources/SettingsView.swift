@@ -12,32 +12,32 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Seguridad") {
-                Picker("Bloquear tras inactividad", selection: $autoLockMinutes) {
-                    Text("1 minuto").tag(1)
-                    Text("5 minutos").tag(5)
-                    Text("15 minutos").tag(15)
-                    Text("1 hora").tag(60)
-                    Text("Nunca").tag(0)
+            Section("Security") {
+                Picker("Lock After Inactivity", selection: $autoLockMinutes) {
+                    Text("1 minute").tag(1)
+                    Text("5 minutes").tag(5)
+                    Text("15 minutes").tag(15)
+                    Text("1 hour").tag(60)
+                    Text("Never").tag(0)
                 }
-                Picker("Limpiar portapapeles tras", selection: $clipboardSeconds) {
-                    ForEach([15, 30, 60, 90], id: \.self) { Text("\($0) segundos").tag($0) }
+                Picker("Clear Clipboard After", selection: $clipboardSeconds) {
+                    ForEach([15, 30, 60, 90], id: \.self) { Text("\($0) seconds").tag($0) }
                 }
                 if Biometrics.isAvailable {
-                    Toggle("Desbloquear con Touch ID", isOn: $touchID)
+                    Toggle("Unlock with Touch ID", isOn: $touchID)
                         .disabled(store.state != .unlocked)
                         .onChange(of: touchID) { _, on in store.setTouchID(on) }
                 }
-                Button("Cambiar contraseña maestra…") { changingPassword = true }
+                Button("Change Master Password…") { changingPassword = true }
                     .disabled(store.state != .unlocked)
             }
 
             Section {
-                Toggle("Mostrar en la barra de menús", isOn: $menuBarIcon)
+                Toggle("Show in Menu Bar", isOn: $menuBarIcon)
             } header: {
-                Text("Barra de menús")
+                Text("Menu Bar")
             } footer: {
-                Text("Busca y copia tus secretos desde el ícono de la barra de menús. Al cerrar la ventana, OpenVault sale del Dock y sigue disponible desde ese ícono.")
+                Text("Search and copy your secrets from the menu bar icon. When you close the window, OpenVault leaves the Dock and stays available from that icon.")
             }
 
             Section {
@@ -48,16 +48,16 @@ struct SettingsView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
-                LabeledContent("Instalar") {
+                LabeledContent("Install") {
                     HStack {
                         Text(installCommand).font(.callout.monospaced())
-                        CopyButton(value: installCommand, label: "Copiar comando")
+                        CopyButton(value: installCommand, label: String(localized: "Copy Command"))
                     }
                 }
             } header: {
                 Text("CLI")
             } footer: {
-                Text("Desde la carpeta del repositorio de OpenVault. Luego, en tu proyecto: `ovault init` y `ovault run -- <comando>`.")
+                Text("Run from the OpenVault repository folder. Then, in your project: `ovault init` and `ovault run -- <command>`.")
             }
         }
         .formStyle(.grouped)
@@ -79,15 +79,15 @@ private struct ChangePasswordView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Cambiar contraseña maestra").font(.headline)
-            SecureField("Contraseña actual", text: $current)
-            SecureField("Nueva contraseña (mín. 8)", text: $new)
-            SecureField("Confirmar nueva contraseña", text: $confirmation)
+            Text("Change Master Password").font(.headline)
+            SecureField("Current Password", text: $current)
+            SecureField("New Password (min. 8 characters)", text: $new)
+            SecureField("Confirm New Password", text: $confirmation)
             if let error { Text(error).font(.caption).foregroundStyle(.red) }
             HStack {
                 Spacer()
-                Button("Cancelar", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Cambiar") { change() }
+                Button("Cancel", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Change") { change() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(working || current.isEmpty || new.count < 8 || new != confirmation)

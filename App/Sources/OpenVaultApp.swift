@@ -16,14 +16,14 @@ struct OpenVaultApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Nuevo item") {
+                Button("New Item") {
                     store.editorDraft = EditorDraft(item: Item(name: "", kind: .secret, content: ""), isNew: true)
                 }
                 .keyboardShortcut("n")
                 .disabled(store.state != .unlocked)
             }
             CommandMenu("Vault") {
-                Button("Bloquear") { store.lock() }
+                Button("Lock") { store.lock() }
                     .keyboardShortcut("l")
                     .disabled(store.state != .unlocked)
             }
@@ -55,7 +55,7 @@ private struct RootView: View {
             }
         }
         .animation(Motion.standard, value: store.state)
-        .alert("No se pudo completar la acción",
+        .alert("The Action Couldn’t Be Completed",
                isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("OK") { store.errorMessage = nil }
         } message: {

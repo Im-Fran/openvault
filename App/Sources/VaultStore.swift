@@ -53,7 +53,7 @@ final class VaultStore {
     }
 
     func unlockWithBiometrics() async {
-        guard let raw = await Biometrics.load(reason: "desbloquear OpenVault"),
+        guard let raw = await Biometrics.load(reason: String(localized: "unlock OpenVault")),
               let key = try? file.key(fromRaw: raw),
               let vault = try? file.load(key: key)
         else {

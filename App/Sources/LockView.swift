@@ -23,11 +23,11 @@ struct LockView: View {
                 .accessibilityHidden(true)
 
             VStack(spacing: 6) {
-                Text(isSetup ? "Crea tu vault" : "OpenVault está bloqueado")
+                Text(isSetup ? "Create Your Vault" : "OpenVault Is Locked")
                     .font(.title2.weight(.semibold))
                 Text(isSetup
-                     ? "La contraseña maestra cifra todos tus secretos. No se puede recuperar si la olvidas."
-                     : "Ingresa tu contraseña maestra.")
+                     ? "Your master password encrypts all your secrets. It can’t be recovered if you forget it."
+                     : "Enter your master password.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -35,11 +35,11 @@ struct LockView: View {
             }
 
             VStack(spacing: 10) {
-                SecureField("Contraseña maestra", text: $password)
+                SecureField("Master Password", text: $password)
                     .focused($focused)
                     .onSubmit(submit)
                 if isSetup {
-                    SecureField("Confirmar contraseña", text: $confirmation)
+                    SecureField("Confirm Password", text: $confirmation)
                         .onSubmit(submit)
                     StrengthMeter(password: password)
                 }
@@ -65,7 +65,7 @@ struct LockView: View {
             }
 
             if showError {
-                Text("Contraseña incorrecta").font(.callout).foregroundStyle(.red).transition(.opacity)
+                Text("Incorrect password").font(.callout).foregroundStyle(.red).transition(.opacity)
             }
 
             if let hint = setupHint {
@@ -80,11 +80,11 @@ struct LockView: View {
                         Image(systemName: "touchid")
                     }
                     .controlSize(.large)
-                    .help("Desbloquear con Touch ID")
-                    .accessibilityLabel("Desbloquear con Touch ID")
+                    .help("Unlock with Touch ID")
+                    .accessibilityLabel("Unlock with Touch ID")
                 }
                 Button(action: submit) {
-                    Text(isSetup ? "Crear vault" : "Desbloquear")
+                    Text(isSetup ? "Create Vault" : "Unlock")
                         .frame(maxWidth: .infinity)
                         .opacity(working ? 0 : 1)
                         .overlay { if working { ProgressView().controlSize(.small) } }
@@ -114,9 +114,9 @@ struct LockView: View {
 
     private var setupHint: String? {
         guard isSetup, !confirmation.isEmpty, confirmation != password else {
-            return isSetup && !password.isEmpty && password.count < 8 ? "Mínimo 8 caracteres." : nil
+            return isSetup && !password.isEmpty && password.count < 8 ? String(localized: "At least 8 characters.") : nil
         }
-        return "Las contraseñas no coinciden."
+        return String(localized: "Passwords don’t match.")
     }
 
     private var canSubmit: Bool {
@@ -135,7 +135,7 @@ struct LockView: View {
                 NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                 failures += 1
                 withAnimation(Motion.standard) { showError = true }
-                AccessibilityNotification.Announcement("Contraseña incorrecta").post()
+                AccessibilityNotification.Announcement(String(localized: "Incorrect password")).post()
                 password = ""
                 focused = true
             }
@@ -156,7 +156,7 @@ private struct StrengthMeter: View {
     }
 
     private var color: Color { [.red, .red, .orange, .yellow, .green][score] }
-    private var label: String { ["", "Débil", "Aceptable", "Buena", "Fuerte"][score] }
+    private var label: String { ["", String(localized: "Weak"), String(localized: "Fair"), String(localized: "Good"), String(localized: "Strong")][score] }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -169,6 +169,6 @@ private struct StrengthMeter: View {
         }
         .animation(Motion.standard, value: score)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Fortaleza: \(label.isEmpty ? "sin contraseña" : label)")
+        .accessibilityLabel("Strength: \(label.isEmpty ? String(localized: "no password") : label)")
     }
 }

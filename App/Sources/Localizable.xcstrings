@@ -1,0 +1,1603 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld seconds": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld second"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld seconds"
+                }
+              }
+            }
+          }
+        },
+        "es-419": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld segundo"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld segundos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld variables": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld variable"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld variables"
+                }
+              }
+            }
+          }
+        },
+        "es-419": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld variable"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld variables"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    ".env Contents": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contenido .env"
+          }
+        }
+      }
+    },
+    ".env File": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivo .env"
+          }
+        }
+      }
+    },
+    ".env Files": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivos .env"
+          }
+        }
+      }
+    },
+    "1 hour": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 hora"
+          }
+        }
+      }
+    },
+    "1 minute": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 minuto"
+          }
+        }
+      }
+    },
+    "15 minutes": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "15 minutos"
+          }
+        }
+      }
+    },
+    "5 minutes": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 minutos"
+          }
+        }
+      }
+    },
+    "ASCII-Armored Key": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave armada (ASCII)"
+          }
+        }
+      }
+    },
+    "All": {
+      "comment": "Sidebar row / title showing every item",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos"
+          }
+        }
+      }
+    },
+    "Armored Key": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave armada"
+          }
+        }
+      }
+    },
+    "At least 8 characters.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mínimo 8 caracteres."
+          }
+        }
+      }
+    },
+    "Back": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver"
+          }
+        }
+      }
+    },
+    "Back (Esc)": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver (esc)"
+          }
+        }
+      }
+    },
+    "CLI": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CLI"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        }
+      }
+    },
+    "Change": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar"
+          }
+        }
+      }
+    },
+    "Change Master Password": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar contraseña maestra"
+          }
+        }
+      }
+    },
+    "Change Master Password…": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar contraseña maestra…"
+          }
+        }
+      }
+    },
+    "Choose File…": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir archivo…"
+          }
+        }
+      }
+    },
+    "Clear Clipboard After": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limpiar portapapeles tras"
+          }
+        }
+      }
+    },
+    "Commit signing": {
+      "comment": "Placeholder name for a GPG key item",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Firma de commits"
+          }
+        }
+      }
+    },
+    "Confirm New Password": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar nueva contraseña"
+          }
+        }
+      }
+    },
+    "Confirm Password": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar contraseña"
+          }
+        }
+      }
+    },
+    "Content": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contenido"
+          }
+        }
+      }
+    },
+    "Contents": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contenido"
+          }
+        }
+      }
+    },
+    "Copied": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado"
+          }
+        }
+      }
+    },
+    "Copied — it will be cleared from the clipboard": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado — se borrará del portapapeles"
+          }
+        }
+      }
+    },
+    "Copy %@": {
+      "comment": "%@ is a field label",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar %@"
+          }
+        }
+      }
+    },
+    "Copy .env": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar .env"
+          }
+        }
+      }
+    },
+    "Copy Command": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar comando"
+          }
+        }
+      }
+    },
+    "Couldn’t Run ssh-keygen": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo ejecutar ssh-keygen"
+          }
+        }
+      }
+    },
+    "Couldn’t derive the key.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo derivar la clave."
+          }
+        }
+      }
+    },
+    "Couldn’t read the file, or it’s larger than %@.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer el archivo o supera %@."
+          }
+        }
+      }
+    },
+    "Couldn’t read the public key. The passphrase may be wrong or the key may not be in OpenSSH format.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer la clave pública. Es posible que la passphrase sea incorrecta o que la clave no esté en formato OpenSSH."
+          }
+        }
+      }
+    },
+    "Couldn’t save “%@”.": {
+      "comment": "%@ is a file name",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo guardar «%@»."
+          }
+        }
+      }
+    },
+    "Create": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear"
+          }
+        }
+      }
+    },
+    "Create Vault": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear vault"
+          }
+        }
+      }
+    },
+    "Create Vault…": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear vault…"
+          }
+        }
+      }
+    },
+    "Create Your Vault": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea tu vault"
+          }
+        }
+      }
+    },
+    "Create one from the main window.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea uno desde la ventana principal."
+          }
+        }
+      }
+    },
+    "Create one with ⌘N or drag a file here.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea uno con ⌘N o arrastra un archivo aquí."
+          }
+        }
+      }
+    },
+    "Created": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creado"
+          }
+        }
+      }
+    },
+    "Credentials": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Credenciales"
+          }
+        }
+      }
+    },
+    "Current Password": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contraseña actual"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar"
+          }
+        }
+      }
+    },
+    "Delete “%@”?": {
+      "comment": "%@ is the item name",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar «%@»?"
+          }
+        }
+      }
+    },
+    "Discard Changes": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar cambios"
+          }
+        }
+      }
+    },
+    "Discard Changes?": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Descartar los cambios?"
+          }
+        }
+      }
+    },
+    "Edit": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar"
+          }
+        }
+      }
+    },
+    "Enter your master password.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingresa tu contraseña maestra."
+          }
+        }
+      }
+    },
+    "Export to File…": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar a archivo…"
+          }
+        }
+      }
+    },
+    "Fair": {
+      "comment": "Password strength",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aceptable"
+          }
+        }
+      }
+    },
+    "File": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivo"
+          }
+        }
+      }
+    },
+    "Files": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivos"
+          }
+        }
+      }
+    },
+    "Fingerprint": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Huella digital"
+          }
+        }
+      }
+    },
+    "GPG Key": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave GPG"
+          }
+        }
+      }
+    },
+    "GPG Keys": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claves GPG"
+          }
+        }
+      }
+    },
+    "Generate ed25519": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generar ed25519"
+          }
+        }
+      }
+    },
+    "Generating…": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generando…"
+          }
+        }
+      }
+    },
+    "Good": {
+      "comment": "Password strength",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buena"
+          }
+        }
+      }
+    },
+    "Hidden": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oculto"
+          }
+        }
+      }
+    },
+    "Hide": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar"
+          }
+        }
+      }
+    },
+    "Hide %@": {
+      "comment": "%@ is a field label",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar %@"
+          }
+        }
+      }
+    },
+    "Hide Passphrase": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar passphrase"
+          }
+        }
+      }
+    },
+    "Hide Password": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar contraseña"
+          }
+        }
+      }
+    },
+    "Hold ⌥ to Reveal All": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén ⌥ para mostrar todo"
+          }
+        }
+      }
+    },
+    "Identity": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Identidad"
+          }
+        }
+      }
+    },
+    "Incorrect password": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contraseña incorrecta"
+          }
+        }
+      }
+    },
+    "Install": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Instalar"
+          }
+        }
+      }
+    },
+    "Keep Editing": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir editando"
+          }
+        }
+      }
+    },
+    "Key": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave"
+          }
+        }
+      }
+    },
+    "Kind": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo"
+          }
+        }
+      }
+    },
+    "Lock": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear"
+          }
+        }
+      }
+    },
+    "Lock (⌘L)": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear (⌘L)"
+          }
+        }
+      }
+    },
+    "Lock After Inactivity": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear tras inactividad"
+          }
+        }
+      }
+    },
+    "Master Password": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contraseña maestra"
+          }
+        }
+      }
+    },
+    "Menu Bar": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra de menús"
+          }
+        }
+      }
+    },
+    "Modified": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modificado"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre"
+          }
+        }
+      }
+    },
+    "Never": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nunca"
+          }
+        }
+      }
+    },
+    "New Item": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuevo ítem"
+          }
+        }
+      }
+    },
+    "New Item (⌘N)": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuevo ítem (⌘N)"
+          }
+        }
+      }
+    },
+    "New Password (min. 8 characters)": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nueva contraseña (mín. 8 caracteres)"
+          }
+        }
+      }
+    },
+    "No Items": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin ítems"
+          }
+        }
+      }
+    },
+    "No vault found. Create one in the OpenVault app.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No existe un vault. Créalo desde la app OpenVault."
+          }
+        }
+      }
+    },
+    "Notes": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aceptar"
+          }
+        }
+      }
+    },
+    "Open OpenVault": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir OpenVault"
+          }
+        }
+      }
+    },
+    "Open OpenVault (⌘O)": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir OpenVault (⌘O)"
+          }
+        }
+      }
+    },
+    "OpenVault": {
+      "comment": "Brand name, do not translate",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenVault"
+          }
+        }
+      }
+    },
+    "OpenVault Is Locked": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenVault está bloqueado"
+          }
+        }
+      }
+    },
+    "Optional": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opcional"
+          }
+        }
+      }
+    },
+    "Or drag a .env file, an SSH or GPG key, or any file into the window.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O arrastra un .env, una clave SSH o GPG, o cualquier archivo a la ventana."
+          }
+        }
+      }
+    },
+    "Other": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otros"
+          }
+        }
+      }
+    },
+    "Passphrase": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passphrase"
+          }
+        }
+      }
+    },
+    "Password": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contraseña"
+          }
+        }
+      }
+    },
+    "Password for the file, if it has one (e.g. a .p12).": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contraseña del archivo, si tiene (p. ej. un .p12)."
+          }
+        }
+      }
+    },
+    "Password to decrypt the key, if it has one.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contraseña para descifrar la clave, si tiene."
+          }
+        }
+      }
+    },
+    "Passwords": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contraseñas"
+          }
+        }
+      }
+    },
+    "Passwords don’t match.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las contraseñas no coinciden."
+          }
+        }
+      }
+    },
+    "Private Key": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave privada"
+          }
+        }
+      }
+    },
+    "Private Key (OpenSSH)": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave privada (OpenSSH)"
+          }
+        }
+      }
+    },
+    "Project": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proyecto"
+          }
+        }
+      }
+    },
+    "Projects": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proyectos"
+          }
+        }
+      }
+    },
+    "Public Key": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave pública"
+          }
+        }
+      }
+    },
+    "Quit": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salir"
+          }
+        }
+      }
+    },
+    "Quit OpenVault (⌘Q)": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salir de OpenVault (⌘Q)"
+          }
+        }
+      }
+    },
+    "Replace File…": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reemplazar archivo…"
+          }
+        }
+      }
+    },
+    "Run from the OpenVault repository folder. Then, in your project: `ovault init` and `ovault run -- <command>`.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde la carpeta del repositorio de OpenVault. Luego, en tu proyecto: `ovault init` y `ovault run -- <comando>`."
+          }
+        }
+      }
+    },
+    "SSH Key": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave SSH"
+          }
+        }
+      }
+    },
+    "SSH Keys": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claves SSH"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar"
+          }
+        }
+      }
+    },
+    "Save to Disk…": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar en disco…"
+          }
+        }
+      }
+    },
+    "Search": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar"
+          }
+        }
+      }
+    },
+    "Search and copy your secrets from the menu bar icon. When you close the window, OpenVault leaves the Dock and stays available from that icon.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Busca y copia tus secretos desde el ícono de la barra de menús. Al cerrar la ventana, OpenVault sale del Dock y sigue disponible desde ese ícono."
+          }
+        }
+      }
+    },
+    "Search credentials and secrets": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar credenciales y secretos"
+          }
+        }
+      }
+    },
+    "Secret": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secreto"
+          }
+        }
+      }
+    },
+    "Secrets": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secretos"
+          }
+        }
+      }
+    },
+    "Security": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguridad"
+          }
+        }
+      }
+    },
+    "Select an Item": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecciona un ítem"
+          }
+        }
+      }
+    },
+    "Show": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar"
+          }
+        }
+      }
+    },
+    "Show %@": {
+      "comment": "%@ is a field label",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar %@"
+          }
+        }
+      }
+    },
+    "Show Passphrase": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar passphrase"
+          }
+        }
+      }
+    },
+    "Show Password": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar contraseña"
+          }
+        }
+      }
+    },
+    "Show in Menu Bar": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar en la barra de menús"
+          }
+        }
+      }
+    },
+    "Shows details": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muestra el detalle"
+          }
+        }
+      }
+    },
+    "Size": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño"
+          }
+        }
+      }
+    },
+    "Strength: %@": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortaleza: %@"
+          }
+        }
+      }
+    },
+    "Strong": {
+      "comment": "Password strength",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuerte"
+          }
+        }
+      }
+    },
+    "The Action Couldn’t Be Completed": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo completar la acción"
+          }
+        }
+      }
+    },
+    "The vault file is corrupted.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El archivo del vault está dañado."
+          }
+        }
+      }
+    },
+    "This action can’t be undone.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta acción no se puede deshacer."
+          }
+        }
+      }
+    },
+    "Types": {
+      "comment": "Sidebar section listing item kinds",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipos"
+          }
+        }
+      }
+    },
+    "URL": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL"
+          }
+        }
+      }
+    },
+    "Unlock": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquear"
+          }
+        }
+      }
+    },
+    "Unlock with Touch ID": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquear con Touch ID"
+          }
+        }
+      }
+    },
+    "Use a valid variable name: letters, numbers, and _ (e.g. API_KEY).": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa un nombre de variable válido: letras, números y _ (p. ej. API_KEY)."
+          }
+        }
+      }
+    },
+    "User ID": {
+      "comment": "GPG key user ID",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usuario"
+          }
+        }
+      }
+    },
+    "Username": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usuario"
+          }
+        }
+      }
+    },
+    "Value": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor"
+          }
+        }
+      }
+    },
+    "Vault": {
+      "comment": "Menu name",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vault"
+          }
+        }
+      }
+    },
+    "Weak": {
+      "comment": "Password strength",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Débil"
+          }
+        }
+      }
+    },
+    "Wrong master password.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contraseña maestra incorrecta."
+          }
+        }
+      }
+    },
+    "You don’t have a vault yet": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no tienes un vault"
+          }
+        }
+      }
+    },
+    "Your master password encrypts all your secrets. It can’t be recovered if you forget it.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La contraseña maestra cifra todos tus secretos. No se puede recuperar si la olvidas."
+          }
+        }
+      }
+    },
+    "kind.other.singular": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otro"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
+          }
+        }
+      }
+    },
+    "no password": {
+      "comment": "Password strength VoiceOver value when empty",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sin contraseña"
+          }
+        }
+      }
+    },
+    "unlock OpenVault": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "desbloquear OpenVault"
+          }
+        }
+      }
+    },
+    "“%@” doesn’t name a project. Add a line like: project-name=my-project": {
+      "extractionState": "manual",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no define el proyecto. Agrega una línea como: project-name=mi-proyecto"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -5,25 +5,25 @@ import SwiftUI
 extension Item.Kind {
     var title: String {
         switch self {
-        case .env: "Archivos .env"
-        case .secret: "Secretos"
-        case .password: "Contraseñas"
-        case .sshKey: "Claves SSH"
-        case .gpgKey: "Claves GPG"
-        case .file: "Archivos"
-        case .other: "Otros"
+        case .env: String(localized: ".env Files")
+        case .secret: String(localized: "Secrets")
+        case .password: String(localized: "Passwords")
+        case .sshKey: String(localized: "SSH Keys")
+        case .gpgKey: String(localized: "GPG Keys")
+        case .file: String(localized: "Files")
+        case .other: String(localized: "Other")
         }
     }
 
     var singular: String {
         switch self {
-        case .env: "Archivo .env"
-        case .secret: "Secreto"
-        case .password: "Contraseña"
-        case .sshKey: "Clave SSH"
-        case .gpgKey: "Clave GPG"
-        case .file: "Archivo"
-        case .other: "Otro"
+        case .env: String(localized: ".env File")
+        case .secret: String(localized: "Secret")
+        case .password: String(localized: "Password")
+        case .sshKey: String(localized: "SSH Key")
+        case .gpgKey: String(localized: "GPG Key")
+        case .file: String(localized: "File")
+        case .other: String(localized: "kind.other.singular", defaultValue: "Other", comment: "Singular item kind; the sidebar plural uses the key \"Other\"")
         }
     }
 

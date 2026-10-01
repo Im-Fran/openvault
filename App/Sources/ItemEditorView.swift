@@ -29,7 +29,7 @@ struct ItemEditorView: View {
         let name = item.name.trimmingCharacters(in: .whitespaces)
         if name.isEmpty { return nil } // required, but don't nag before typing
         if item.kind == .secret, name.wholeMatch(of: /[A-Za-z_][A-Za-z0-9_]*/) == nil {
-            return "Usa un nombre de variable válido: letras, números y _ (p. ej. API_KEY)."
+            return String(localized: "Use a valid variable name: letters, numbers, and _ (e.g. API_KEY).")
         }
         return nil
     }
@@ -48,16 +48,16 @@ struct ItemEditorView: View {
         VStack(spacing: 0) {
             Form {
                 Section {
-                    Picker("Tipo", selection: $item.kind.animation(Motion.standard)) {
+                    Picker("Kind", selection: $item.kind.animation(Motion.standard)) {
                         ForEach(Item.Kind.allCases, id: \.self) { kind in
                             Label(kind.singular, systemImage: kind.symbol).tag(kind)
                         }
                     }
-                    TextField("Nombre", text: $item.name, prompt: Text(namePrompt))
+                    TextField("Name", text: $item.name, prompt: Text(namePrompt))
                     if let nameError {
                         Text(nameError).font(.caption).foregroundStyle(.red)
                     }
-                    TextField("Proyecto", text: $project, prompt: Text("Opcional"))
+                    TextField("Project", text: $project, prompt: Text("Optional"))
                         .textInputSuggestions {
                             ForEach(store.vault.projects.filter { project.isEmpty || $0.localizedCaseInsensitiveContains(project) }, id: \.self) {
                                 Text($0).textInputCompletion($0)
@@ -67,25 +67,25 @@ struct ItemEditorView: View {
 
                 Section {
                     if item.kind == .secret {
-                        TextField("Valor", text: $item.content, axis: .vertical)
+                        TextField("Value", text: $item.content, axis: .vertical)
                             .font(.body.monospaced())
                             .lineLimit(1...6)
                     } else if item.kind == .password {
-                        TextField("Usuario", text: optional(\.username), prompt: Text("Opcional"))
+                        TextField("Username", text: optional(\.username), prompt: Text("Optional"))
                         HStack {
                             Group {
-                                if showPassphrase { TextField("Contraseña", text: $item.content) }
-                                else { SecureField("Contraseña", text: $item.content) }
+                                if showPassphrase { TextField("Password", text: $item.content) }
+                                else { SecureField("Password", text: $item.content) }
                             }
                             .font(.body.monospaced())
-                            revealButton(what: "contraseña")
+                            revealButton(show: "Show Password", hide: "Hide Password")
                         }
-                        TextField("URL", text: optional(\.url), prompt: Text("Opcional"))
+                        TextField("URL", text: optional(\.url), prompt: Text("Optional"))
                     } else if item.kind == .file {
                         if let data = item.data {
-                            LabeledContent(item.fileName ?? "Archivo", value: Int64(data.count).formatted(.byteCount(style: .file)))
+                            LabeledContent(item.fileName ?? String(localized: "File"), value: Int64(data.count).formatted(.byteCount(style: .file)))
                         }
-                        Button(item.data == nil ? "Elegir archivo…" : "Reemplazar archivo…", systemImage: "doc.badge.plus") { pickingFile = true }
+                        Button(item.data == nil ? "Choose File…" : "Replace File…", systemImage: "doc.badge.plus") { pickingFile = true }
                         if let fileError {
                             Text(fileError).font(.caption).foregroundStyle(.red)
                         }
@@ -94,14 +94,14 @@ struct ItemEditorView: View {
                             .font(.body.monospaced())
                             .frame(minHeight: 160)
                             .scrollContentBackground(.hidden)
-                            .accessibilityLabel("Contenido")
+                            .accessibilityLabel("Content")
                     }
                 } header: {
                     HStack {
                         Text(contentTitle)
                         Spacer()
                         if item.kind == .sshKey, item.content.isEmpty {
-                            Button(generating ? "Generando…" : "Generar ed25519", systemImage: "wand.and.stars") { generate() }
+                            Button(generating ? "Generating…" : "Generate ed25519", systemImage: "wand.and.stars") { generate() }
                                 .buttonStyle(.borderless)
                                 .disabled(generating)
                         }
@@ -116,15 +116,15 @@ struct ItemEditorView: View {
                                 else { SecureField("Passphrase", text: $passphrase) }
                             }
                             .font(.body.monospaced())
-                            revealButton(what: "passphrase")
+                            revealButton(show: "Show Passphrase", hide: "Hide Passphrase")
                         }
                     } footer: {
-                        Text(item.kind == .file ? "Contraseña del archivo, si tiene (p. ej. un .p12)." : "Contraseña para descifrar la clave, si tiene.")
+                        Text(item.kind == .file ? "Password for the file, if it has one (e.g. a .p12)." : "Password to decrypt the key, if it has one.")
                     }
                 }
 
-                Section("Notas") {
-                    TextField("Notas", text: $item.notes, prompt: Text("Opcional"), axis: .vertical)
+                Section("Notes") {
+                    TextField("Notes", text: $item.notes, prompt: Text("Optional"), axis: .vertical)
                         .lineLimit(2...5)
                         .labelsHidden()
                 }
@@ -133,9 +133,9 @@ struct ItemEditorView: View {
 
             HStack {
                 Spacer()
-                Button("Cancelar", role: .cancel) { if isDirty { confirmDiscard = true } else { dismiss() } }
+                Button("Cancel", role: .cancel) { if isDirty { confirmDiscard = true } else { dismiss() } }
                     .keyboardShortcut(.cancelAction)
-                Button(draft.isNew ? "Crear" : "Guardar") { save() }
+                Button(draft.isNew ? "Create" : "Save") { save() }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .disabled(!canSave)
@@ -144,16 +144,16 @@ struct ItemEditorView: View {
         }
         .frame(width: 520, height: 600)
         .interactiveDismissDisabled(isDirty)
-        .confirmationDialog("¿Descartar los cambios?", isPresented: $confirmDiscard) {
-            Button("Descartar cambios", role: .destructive) { dismiss() }
-            Button("Seguir editando", role: .cancel) {}
+        .confirmationDialog("Discard Changes?", isPresented: $confirmDiscard) {
+            Button("Discard Changes", role: .destructive) { dismiss() }
+            Button("Keep Editing", role: .cancel) {}
         }
-        .alert("No se pudo ejecutar ssh-keygen", isPresented: $generateFailed) {}
+        .alert("Couldn’t Run ssh-keygen", isPresented: $generateFailed) {}
         .fileImporter(isPresented: $pickingFile, allowedContentTypes: [.data]) { result in
             guard let url = try? result.get() else { return }
             guard let file = Item.file(at: url) else {
                 let limit = Int64(Item.maxFileBytes).formatted(.byteCount(style: .file))
-                fileError = "No se pudo leer el archivo o supera \(limit)."
+                fileError = String(localized: "Couldn’t read the file, or it’s larger than \(limit).")
                 return
             }
             fileError = nil
@@ -168,14 +168,14 @@ struct ItemEditorView: View {
         Binding(get: { item[keyPath: field] ?? "" }, set: { item[keyPath: field] = $0.isEmpty ? nil : $0 })
     }
 
-    private func revealButton(what: String) -> some View {
+    private func revealButton(show: LocalizedStringKey, hide: LocalizedStringKey) -> some View {
         Button {
             showPassphrase.toggle()
         } label: {
             Image(systemName: showPassphrase ? "eye.slash" : "eye")
         }
         .buttonStyle(.borderless)
-        .accessibilityLabel(showPassphrase ? "Ocultar \(what)" : "Mostrar \(what)")
+        .accessibilityLabel(showPassphrase ? hide : show)
     }
 
     private var namePrompt: String {
@@ -184,21 +184,21 @@ struct ItemEditorView: View {
         case .secret: "API_KEY"
         case .password: "GitHub"
         case .sshKey: "id_ed25519_github"
-        case .gpgKey: "Firma de commits"
+        case .gpgKey: String(localized: "Commit signing")
         case .file: "AuthKey_ABC123.p8"
-        case .other: "Nombre"
+        case .other: String(localized: "Name")
         }
     }
 
-    private var contentTitle: String {
+    private var contentTitle: LocalizedStringKey {
         switch item.kind {
-        case .env: "Contenido .env"
-        case .secret: "Valor"
-        case .password: "Credenciales"
-        case .file: "Archivo"
-        case .sshKey: "Clave privada (OpenSSH)"
-        case .gpgKey: "Clave armada (ASCII)"
-        case .other: "Contenido"
+        case .env: ".env Contents"
+        case .secret: "Value"
+        case .password: "Credentials"
+        case .file: "File"
+        case .sshKey: "Private Key (OpenSSH)"
+        case .gpgKey: "ASCII-Armored Key"
+        case .other: "Content"
         }
     }
 

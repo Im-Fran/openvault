@@ -10,10 +10,10 @@ public enum VaultError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .wrongPassword: "Contraseña maestra incorrecta."
-        case .notFound: "No existe un vault. Créalo desde la app OpenVault."
-        case .corrupted: "El archivo del vault está dañado."
-        case .keyDerivationFailed: "No se pudo derivar la clave."
+        case .wrongPassword: String(localized: "Wrong master password.")
+        case .notFound: String(localized: "No vault found. Create one in the OpenVault app.")
+        case .corrupted: String(localized: "The vault file is corrupted.")
+        case .keyDerivationFailed: String(localized: "Couldn’t derive the key.")
         }
     }
 }
