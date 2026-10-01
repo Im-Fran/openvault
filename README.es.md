@@ -96,6 +96,10 @@ La primera vez te pide crear la contraseña maestra. **No se puede recuperar si 
 
 ### 3. Instalar el CLI
 
+La app trae `ovault` incluido: en **Ajustes → CLI**, haz clic en **Instalar…**. Enlaza `/usr/local/bin/ovault` a la copia dentro de la app (pide una contraseña de administrador si hace falta), así que se actualiza junto con la app. Abre la app desde `/Applications` primero; un enlace hacia la imagen de disco se rompería al expulsarla.
+
+Sin la app, desde el repositorio:
+
 ```bash
 make install-cli    # instala ovault en ~/.local/bin
 ```

@@ -36,6 +36,27 @@ targets:
       - package: OpenVault
         product: OpenVaultCore
       - package: OpenUpdater
+    postBuildScripts:
+      # Ships the CLI inside the app (Contents/MacOS/ovault) so Settings can install it.
+      # Runs before Xcode signs the app, so the outer signature seals it.
+      - name: Embed ovault CLI
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          config=debug; [ "$CONFIGURATION" = Release ] && config=release
+          archs=(); for arch in $ARCHS; do archs+=(--arch "$arch"); done
+          # Xcode's build settings leak into SwiftPM and break it: build from a clean environment.
+          spm() {
+            env -i PATH="$PATH" HOME="$HOME" TMPDIR="$TMPDIR" DEVELOPER_DIR="$DEVELOPER_DIR" \
+              swift build --package-path "$SRCROOT/.." -c "$config" --product ovault "${archs[@]}" "$@"
+          }
+          spm
+          dest="$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ovault"
+          cp -f "$(spm --show-bin-path)/ovault" "$dest"
+          if [ "${CODE_SIGNING_ALLOWED:-YES}" = YES ] && [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ]; then
+            ts=--timestamp=none; [ "$CONFIGURATION" = Release ] && ts=--timestamp
+            codesign --force --options runtime "$ts" --sign "$EXPANDED_CODE_SIGN_IDENTITY" "$dest"
+          fi
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: cl.franciscosolis.openvault
@@ -44,6 +65,8 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: NO
+        # The embed script reads the package sources outside the target.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: OpenVault
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools

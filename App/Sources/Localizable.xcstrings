@@ -292,6 +292,16 @@
         }
       }
     },
+    "Command-Line Tool": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herramienta de línea de comandos"
+          }
+        }
+      }
+    },
     "Commit signing": {
       "comment": "Placeholder name for a GPG key item",
       "localizations": {
@@ -384,12 +394,13 @@
         }
       }
     },
-    "Copy Command": {
+    "Couldn’t install the CLI.": {
+      "extractionState": "manual",
       "localizations": {
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copiar comando"
+            "value": "No se pudo instalar la CLI."
           }
         }
       }
@@ -627,12 +638,64 @@
         }
       }
     },
+    "Installed": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Instalada"
+          }
+        }
+      }
+    },
+    "Install…": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Instalar…"
+          }
+        }
+      }
+    },
+    "Links `ovault` into %@, asking for an administrator password if needed. It updates with the app. Then, in your project: `ovault init` and `ovault run -- <command>`.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enlaza `ovault` en %@ y pide una contraseña de administrador si hace falta. Se actualiza junto con la app. Luego, en tu proyecto: `ovault init` y `ovault run -- <comando>`."
+          }
+        }
+      }
+    },
+    "Move OpenVault to the Applications folder first, then open it from there.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primero mueve OpenVault a la carpeta Aplicaciones y ábrela desde ahí."
+          }
+        }
+      }
+    },
     "No Project": {
       "localizations": {
         "es-419": {
           "stringUnit": {
             "state": "translated",
             "value": "Sin proyecto"
+          }
+        }
+      }
+    },
+    "This build of OpenVault doesn’t include the CLI.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta versión de OpenVault no incluye la CLI."
           }
         }
       }
@@ -836,16 +899,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Contraseña incorrecta"
-          }
-        }
-      }
-    },
-    "Install": {
-      "localizations": {
-        "es-419": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Instalar"
           }
         }
       }
@@ -1238,16 +1291,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reemplazar archivo…"
-          }
-        }
-      }
-    },
-    "Run from the OpenVault repository folder. Then, in your project: `ovault init` and `ovault run -- <command>`.": {
-      "localizations": {
-        "es-419": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desde la carpeta del repositorio de OpenVault. Luego, en tu proyecto: `ovault init` y `ovault run -- <comando>`."
           }
         }
       }

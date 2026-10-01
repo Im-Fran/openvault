@@ -78,19 +78,22 @@ platform :mac do
         code_sign_identity: "Developer ID Application"
       )
     end
-    build_mac_app(
-      project: PROJECT,
-      scheme: SCHEME,
-      configuration: "Release",
-      export_method: "developer-id",
-      codesigning_identity: options[:signed] == false ? nil : "Developer ID Application",
-      skip_codesigning: options[:signed] == false,
-      skip_package_pkg: true,
-      derived_data_path: "#{BUILD_DIR}/DerivedData",
-      output_directory: BUILD_DIR,
-      archive_path: "#{BUILD_DIR}/OpenVault.xcarchive",
-      xcargs: build_xcargs(options)
-    )
+    # The app embeds ovault (see App/project.yml), so it gets the version too.
+    with_cli_version(options[:version]) do
+      build_mac_app(
+        project: PROJECT,
+        scheme: SCHEME,
+        configuration: "Release",
+        export_method: "developer-id",
+        codesigning_identity: options[:signed] == false ? nil : "Developer ID Application",
+        skip_codesigning: options[:signed] == false,
+        skip_package_pkg: true,
+        derived_data_path: "#{BUILD_DIR}/DerivedData",
+        output_directory: BUILD_DIR,
+        archive_path: "#{BUILD_DIR}/OpenVault.xcarchive",
+        xcargs: build_xcargs(options)
+      )
+    end
   end
 
   desc "Build the universal ovault CLI into build/, signed with Developer ID"
@@ -214,18 +217,25 @@ def package_update(app, version)
   zip
 end
 
-# Universal binary with the version baked in. Version.swift is restored after,
-# so a local run leaves the tree clean.
-def build_cli(version, signed:)
+# Bakes the version into ovault while the block builds. Version.swift is
+# restored after, so a local run leaves the tree clean.
+def with_cli_version(version)
   original = File.read(VERSION_FILE)
-  archs = ["--arch", "arm64", "--arch", "x86_64"]
   begin
     File.write(VERSION_FILE, "// Replaced by the release lane with the app version.\nlet ovaultVersion = \"#{version}\"\n") if version
-    sh("swift", "build", "--package-path", ROOT, "-c", "release", "--product", "ovault", *archs)
-    bin_dir = sh("swift", "build", "--package-path", ROOT, "-c", "release", "--product", "ovault", *archs,
-                 "--show-bin-path", log: false).strip
+    yield
   ensure
     File.write(VERSION_FILE, original)
+  end
+end
+
+# Universal binary with the version baked in.
+def build_cli(version, signed:)
+  archs = ["--arch", "arm64", "--arch", "x86_64"]
+  bin_dir = with_cli_version(version) do
+    sh("swift", "build", "--package-path", ROOT, "-c", "release", "--product", "ovault", *archs)
+    sh("swift", "build", "--package-path", ROOT, "-c", "release", "--product", "ovault", *archs,
+       "--show-bin-path", log: false).strip
   end
 
   cli = File.join(ROOT, BUILD_DIR, "ovault")

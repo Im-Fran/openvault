@@ -96,6 +96,10 @@ On first launch it asks you to create a master password. **It cannot be recovere
 
 ### 3. Install the CLI
 
+The app ships with `ovault`: in **Settings → CLI**, click **Install…**. It links `/usr/local/bin/ovault` to the copy inside the app (asking for an administrator password if needed), so it updates with the app. Open the app from `/Applications` first; a link into the disk image would break when it's ejected.
+
+Without the app, from the repository:
+
 ```bash
 make install-cli    # installs ovault into ~/.local/bin
 ```

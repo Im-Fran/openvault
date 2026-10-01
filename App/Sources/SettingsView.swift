@@ -1,3 +1,4 @@
+import OpenVaultCore
 import SwiftUI
 
 struct SettingsView: View {
@@ -7,8 +8,8 @@ struct SettingsView: View {
     @AppStorage("menuBarIcon") private var menuBarIcon = false
     @State private var touchID = true
     @State private var changingPassword = false
-
-    private let installCommand = "make install-cli"
+    @State private var cliInstalled = CLIInstaller.isInstalled
+    @State private var cliError: String?
 
     var body: some View {
         Form {
@@ -48,23 +49,82 @@ struct SettingsView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
-                LabeledContent("Install") {
-                    HStack {
-                        Text(installCommand).font(.callout.monospaced())
-                        CopyButton(value: installCommand, label: String(localized: "Copy Command"))
+                LabeledContent("Command-Line Tool") {
+                    if cliInstalled {
+                        Label("Installed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    } else {
+                        Button("Install…") { installCLI() }
                     }
+                }
+                if let cliError {
+                    Text(cliError).font(.caption).foregroundStyle(.red)
                 }
             } header: {
                 Text("CLI")
             } footer: {
-                Text("Run from the OpenVault repository folder. Then, in your project: `ovault init` and `ovault run -- <command>`.")
+                Text("Links `ovault` into \(CLIInstaller.linkPath), asking for an administrator password if needed. It updates with the app. Then, in your project: `ovault init` and `ovault run -- <command>`.")
             }
         }
         .formStyle(.grouped)
         .frame(width: 480)
         .fixedSize(horizontal: false, vertical: true)
-        .onAppear { touchID = store.touchIDEnabled }
+        .onAppear {
+            touchID = store.touchIDEnabled
+            cliInstalled = CLIInstaller.isInstalled
+        }
         .sheet(isPresented: $changingPassword) { ChangePasswordView() }
+    }
+
+    private func installCLI() {
+        do {
+            try CLIInstaller.install()
+            cliError = nil
+        } catch {
+            cliError = error.localizedDescription
+        }
+        cliInstalled = CLIInstaller.isInstalled
+    }
+}
+
+/// Links /usr/local/bin/ovault to the CLI inside the app bundle, so app updates update it too.
+enum CLIInstaller {
+    static let linkPath = "/usr/local/bin/ovault"
+    static var bundled: URL? { Bundle.main.url(forAuxiliaryExecutable: "ovault") }
+
+    static var isInstalled: Bool {
+        guard let bundled else { return false }
+        let target = try? FileManager.default.destinationOfSymbolicLink(atPath: linkPath)
+        return target == bundled.path
+    }
+
+    static func install() throws {
+        guard let bundled else { throw CLIError(String(localized: "This build of OpenVault doesn’t include the CLI.")) }
+        // A link into a disk image or a translocated copy breaks as soon as it's ejected or the app moves.
+        if bundled.path.hasPrefix("/Volumes/") || bundled.path.contains("/AppTranslocation/") {
+            throw CLIError(String(localized: "Move OpenVault to the Applications folder first, then open it from there."))
+        }
+        let fm = FileManager.default
+        do {
+            try fm.createDirectory(atPath: (linkPath as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
+            if (try? fm.destinationOfSymbolicLink(atPath: linkPath)) != nil || fm.fileExists(atPath: linkPath) {
+                try fm.removeItem(atPath: linkPath)
+            }
+            try fm.createSymbolicLink(atPath: linkPath, withDestinationPath: bundled.path)
+        } catch {
+            // /usr/local/bin is usually root's: ask for an administrator password.
+            let command = "mkdir -p /usr/local/bin && ln -sfn \(Shell.quote(bundled.path)) \(linkPath)"
+            let literal = command.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+            var info: NSDictionary?
+            NSAppleScript(source: "do shell script \"\(literal)\" with administrator privileges")?.executeAndReturnError(&info)
+            if let info, info[NSAppleScript.errorNumber] as? Int != -128 { // -128: the user cancelled
+                throw CLIError(info[NSAppleScript.errorMessage] as? String ?? String(localized: "Couldn’t install the CLI."))
+            }
+        }
+    }
+
+    struct CLIError: LocalizedError {
+        let errorDescription: String?
+        init(_ message: String) { errorDescription = message }
     }
 }
 
