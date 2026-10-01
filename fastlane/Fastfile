@@ -67,6 +67,17 @@ platform :mac do
 
   desc "Build OpenVault.app into build/"
   lane :build do |options|
+    # Only the app target takes the profile: package resource bundles
+    # (OpenUpdater's) fail the build if one is set on them.
+    if options[:profile]
+      update_code_signing_settings(
+        path: PROJECT,
+        targets: [SCHEME],
+        use_automatic_signing: false,
+        profile_name: options[:profile],
+        code_sign_identity: "Developer ID Application"
+      )
+    end
     build_mac_app(
       project: PROJECT,
       scheme: SCHEME,
@@ -151,7 +162,6 @@ def build_xcargs(options)
   end
   args << "MARKETING_VERSION=#{options[:version]}" if options[:version]
   args << "CURRENT_PROJECT_VERSION=#{options[:build_number]}" if options[:build_number]
-  args << "PROVISIONING_PROFILE_SPECIFIER='#{options[:profile]}'" if options[:profile]
   args.join(" ") unless args.empty?
 end
 
