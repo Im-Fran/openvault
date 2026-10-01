@@ -10,6 +10,10 @@ public struct Vault: Codable, Sendable, Equatable {
         Array(Set(items.compactMap(\.project))).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
+    public var folders: [String] {
+        Array(Set(items.compactMap(\.folder))).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+    }
+
     public func items(in project: String?) -> [Item] {
         guard let project else { return items }
         return items.filter { $0.project == project }
@@ -18,8 +22,10 @@ public struct Vault: Codable, Sendable, Equatable {
     /// Environment for a project: `.env` items first, then passwords, then individual secrets on top (secrets win).
     /// A password is exposed as `Shell.envName(name)`, plus `<NAME>_USERNAME` when it has a user name.
     /// Files are not here (see `fileEnv`); SSH keys, GPG keys and "other" items have no env mapping.
-    public func mergedEnv(project: String?) -> [String: String] {
-        let scoped = items(in: project)
+    public func mergedEnv(project: String?) -> [String: String] { Self.env(of: items(in: project)) }
+
+    /// `mergedEnv` for any set of items (e.g. what a `.ovaultrc` selects).
+    public static func env(of scoped: [Item]) -> [String: String] {
         var env: [String: String] = [:]
         for item in scoped where item.kind == .env {
             for (k, v) in DotEnv.parse(item.content) { env[k] = v }
@@ -36,8 +42,10 @@ public struct Vault: Codable, Sendable, Equatable {
     }
 
     /// File items of a project keyed by the variable that should hold the path they get written to.
-    public func fileEnv(project: String?) -> [String: Item] {
-        Dictionary(items(in: project).filter { $0.kind == .file }.map { (Shell.envName($0.name), $0) },
+    public func fileEnv(project: String?) -> [String: Item] { Self.fileEnv(of: items(in: project)) }
+
+    public static func fileEnv(of scoped: [Item]) -> [String: Item] {
+        Dictionary(scoped.filter { $0.kind == .file }.map { (Shell.envName($0.name), $0) },
                    uniquingKeysWith: { $1 })
     }
 }
@@ -65,10 +73,12 @@ public struct Item: Codable, Sendable, Identifiable, Hashable {
     public var fileName: String?
     /// `.file`: raw bytes (any binary). Encrypted with the rest of the vault.
     public var data: Data?
+    /// Optional group, independent of the project (e.g. "Stripe", "CI"). A `.ovaultrc` can load a whole folder.
+    public var folder: String?
 
     public init(name: String, kind: Kind, project: String? = nil, content: String,
                 passphrase: String? = nil, notes: String = "", username: String? = nil,
-                url: String? = nil, fileName: String? = nil, data: Data? = nil) {
+                url: String? = nil, fileName: String? = nil, data: Data? = nil, folder: String? = nil) {
         self.name = name
         self.kind = kind
         self.project = project
@@ -79,13 +89,15 @@ public struct Item: Codable, Sendable, Identifiable, Hashable {
         self.url = url
         self.fileName = fileName
         self.data = data
+        self.folder = folder
     }
 }
 
 extension [Item] {
-    /// Items whose name or project contains `query` (case-insensitive; empty matches all), sorted by name.
+    /// Items whose name, project or folder contains `query` (case-insensitive; empty matches all), sorted by name.
     public func searched(_ query: String) -> [Item] {
-        filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) || ($0.project ?? "").localizedCaseInsensitiveContains(query) }
+        filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) 
+            || ($0.project ?? "").localizedCaseInsensitiveContains(query) || ($0.folder ?? "").localizedCaseInsensitiveContains(query) }
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 }

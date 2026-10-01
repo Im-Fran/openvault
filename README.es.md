@@ -108,7 +108,7 @@ Asegúrate de tener `~/.local/bin` en tu `PATH`, o usa `make install-cli PREFIX=
 
 ```bash
 cd mi-proyecto
-ovault init                        # crea .openvault con el nombre del proyecto (se puede commitear)
+ovault init                        # crea .ovaultrc con el nombre del proyecto (se puede commitear)
 ovault import .env                 # importa un .env al proyecto
 echo "sk_live_..." | ovault set STRIPE_KEY   # sin VALUE lo lee de stdin (no queda en el historial)
 ovault run -- npm run dev          # ejecuta con los secretos como variables de entorno
@@ -121,13 +121,17 @@ ovault export --format json        # entorno combinado (env | json)
 ovault list                        # items del proyecto, sin valores (-a para todos)
 ```
 
-El proyecto también se puede declarar a mano en un archivo `.ovault` (texto plano, admite comentarios con `#`; solo nombra el proyecto, nunca contiene secretos):
+`.ovaultrc` define qué carga el repositorio (texto plano, admite comentarios con `#`; solo nombra cosas, nunca contiene secretos). Cada línea suma a la selección y cada clave se puede repetir:
 
 ```ini
-project-name=mi-proyecto
+project-name=mi-proyecto         # todos los items del proyecto
+secret-name=STRIPE_KEY           # un item por nombre, de cualquier proyecto
+folder-name=CI                   # todos los items de la carpeta
+secret-name=AWS_.*               # los valores son regex sobre el nombre completo…
+secret-name=WORKER_{1..12}_TOKEN # …y {a..b} es un rango numérico ({01..12} conserva los ceros)
 ```
 
-Con él, `ovault load -- npm run dev` y `eval "$(ovault load)"` no necesitan el nombre. Se busca en el directorio actual y hacia arriba; si en un mismo directorio hay `.ovault` y `.openvault`, gana `.ovault`.
+Con él, `ovault load -- npm run dev`, `eval "$(ovault load)"`, `run`, `export`, `get` y `list` no necesitan un nombre. Los comandos que escriben (`set`, `import`) usan el primer `project-name`. Se busca en el directorio actual y hacia arriba; un `.openvault` antiguo (JSON) se sigue leyendo. `ovault load` avisa de las líneas que no coinciden con nada.
 
 #### Carga automática (opcional)
 
@@ -135,9 +139,9 @@ Con él, `ovault load -- npm run dev` y `eval "$(ovault load)"` no necesitan el 
 eval "$(ovault hook zsh)"   # en ~/.zshrc (o `ovault hook bash` en ~/.bashrc)
 ```
 
-Al entrar a un directorio con `.ovault` (o a un subdirectorio) el hook carga las variables del proyecto, y al salir las quita y borra los archivos temporales. Nunca pide la contraseña maestra: carga únicamente si `OPENVAULT_PASSWORD` está definida; con el vault bloqueado avisa una vez y basta con ejecutar `eval "$(ovault load)"` para desbloquear y cargar. Ojo: un repositorio ajeno con un `.ovault` que nombre uno de tus proyectos recibiría ese entorno al entrar; el hook avisa cada vez que carga.
+Al entrar a un directorio con `.ovaultrc` (o a un subdirectorio) el hook carga las variables del proyecto, y al salir las quita y borra los archivos temporales. Nunca pide la contraseña maestra: carga únicamente si `OPENVAULT_PASSWORD` está definida; con el vault bloqueado avisa una vez y basta con ejecutar `eval "$(ovault load)"` para desbloquear y cargar. Ojo: un repositorio ajeno con un `.ovaultrc` que nombre tus proyectos, secretos o carpetas recibiría ese entorno al entrar; el hook avisa cada vez que carga.
 
-Todos los comandos aceptan `--project <nombre>` para no depender del `.ovault`/`.openvault`. Si un secreto individual y una variable de un `.env` tienen el mismo nombre, gana el secreto individual.
+Todos los comandos aceptan `--project <nombre>` para no depender del `.ovaultrc`. Si un secreto individual y una variable de un `.env` tienen el mismo nombre, gana el secreto individual.
 
 `ovault load` también expone las **contraseñas** (`NOMBRE` y `NOMBRE_USERNAME`; un nombre como «Postgres prod» se convierte en `POSTGRES_PROD`) y los **archivos**: los escribe en un directorio temporal privado (`0700`, archivo `0600`) y exporta su ruta (`AuthKey_AB12.p8` → `AUTHKEY_AB12_P8`). Con `-- comando` los borra al terminar. Las claves SSH/GPG y los items «otros» no se cargan. Detalle en `ovault load --help`.
 
@@ -180,7 +184,7 @@ La firma, el DMG y la notarización van con [fastlane](fastlane/Fastfile) (`make
 Estructura:
 
 ```
-Sources/OpenVaultCore/   cifrado, formato del vault, parser .env, .openvault
+Sources/OpenVaultCore/   cifrado, formato del vault, parser .env, .ovaultrc
 Sources/ovault/          CLI
 Tests/                   tests del núcleo
 App/                     app SwiftUI (project.yml + Sources/)

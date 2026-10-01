@@ -102,31 +102,62 @@ private func tempDir() throws -> URL {
     let nested = root.appending(path: "a/b/c")
     try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
     try ProjectConfig(project: "demo").write(to: root)
+    #expect(try String(contentsOf: root.appending(path: ".ovaultrc"), encoding: .utf8) == "project-name=demo\n")
     #expect(try ProjectConfig.find(from: nested)?.project == "demo")
 }
 
-@Test func dotOvaultFileNamesTheProject() throws {
-    #expect(ProjectConfig.parse("project-name=demo") == "demo")
-    #expect(ProjectConfig.parse("""
-    # which vault project this repo uses
+@Test func ovaultrcParsingAndLookup() throws {
+    #expect(try ProjectConfig.parse("project-name=demo").project == "demo")
+    let config = try ProjectConfig.parse("""
+    # what this repo loads
 
       project-name =  "my app"   # trailing comment
-    other=ignored
-    """) == "my app")
-    #expect(ProjectConfig.parse("# nothing here\nname=demo\nproject-name=\n") == nil)
+    secret-name=STRIPE_KEY
+    folder-name=CI
+    project-name=
+    """)
+    #expect(config.rules == [.init(.project, "my app"), .init(.secret, "STRIPE_KEY"), .init(.folder, "CI")])
+    #expect(throws: ProjectConfigError.empty(path: ".ovaultrc")) { try ProjectConfig.parse("# nothing\nproject-name=\n") }
+    #expect(throws: ProjectConfigError.unknownKey("name", path: ".ovaultrc")) { try ProjectConfig.parse("name=demo") }
+    #expect(throws: ProjectConfigError.invalidPattern("KEY_(", path: ".ovaultrc")) { try ProjectConfig.parse("secret-name=KEY_(") }
 
     let root = try tempDir()
     let nested = root.appending(path: "a/b")
     try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
-    try ProjectConfig(project: "from-json").write(to: root) // .openvault further up
-    try Data("project-name = nearer\n".utf8).write(to: root.appending(path: "a/.ovault"))
+    try Data(#"{"project":"from-json"}"#.utf8).write(to: root.appending(path: ".openvault")) // legacy, further up
+    try Data("project-name = nearer\n".utf8).write(to: root.appending(path: "a/.ovaultrc"))
     #expect(try ProjectConfig.find(from: nested)?.project == "nearer")
     #expect(try ProjectConfig.find(from: root)?.project == "from-json")
 
-    try Data("# no key\n".utf8).write(to: root.appending(path: "a/.ovault"))
-    #expect(throws: ProjectConfigError.missingProjectName(path: root.appending(path: "a/.ovault").standardizedFileURL.path)) {
+    try Data("# no key\n".utf8).write(to: root.appending(path: "a/.ovaultrc"))
+    #expect(throws: ProjectConfigError.empty(path: root.appending(path: "a/.ovaultrc").standardizedFileURL.path)) {
         try ProjectConfig.find(from: nested)
     }
+}
+
+@Test func ovaultrcSelectsByProjectNameAndFolderWithPatterns() throws {
+    let vault = Vault(items: [
+        Item(name: ".env", kind: .env, project: "api", content: "A=1"),
+        Item(name: "WORKER_2_TOKEN", kind: .secret, project: "other", content: "w2"),
+        Item(name: "WORKER_12_TOKEN", kind: .secret, content: "w12"),
+        Item(name: "WORKER_13_TOKEN", kind: .secret, content: "w13"),
+        Item(name: "NODE_07", kind: .secret, content: "n7"),
+        Item(name: "DEPLOY", kind: .secret, content: "d", folder: "CI"),
+        Item(name: "AWS_ID", kind: .secret, project: "other", content: "id"),
+        Item(name: "AWS_SECRET", kind: .secret, project: "other", content: "s"),
+        Item(name: "x.y", kind: .secret, project: "api.v2", content: "literal"),
+    ])
+    func env(_ text: String) throws -> [String: String] { Vault.env(of: try ProjectConfig.parse(text).items(in: vault)) }
+
+    #expect(try env("project-name=api") == ["A": "1"])
+    #expect(try env("folder-name=CI\nsecret-name=AWS_.*") == ["DEPLOY": "d", "AWS_ID": "id", "AWS_SECRET": "s"])
+    #expect(try env("secret-name=WORKER_{1..12}_TOKEN") == ["WORKER_2_TOKEN": "w2", "WORKER_12_TOKEN": "w12"])
+    #expect(try env("secret-name=NODE_{01..09}") == ["NODE_07": "n7"])
+    #expect(try env("project-name=api.v2") == ["x.y": "literal"])
+    #expect(try env("project-name=ap") == [:]) // whole-name match, not substring
+
+    let config = try ProjectConfig.parse("project-name=api\nfolder-name=Nope")
+    #expect(config.unmatched(in: vault) == [.init(.folder, "Nope")])
 }
 
 @Test func legacyVaultWithoutNewFieldsStillDecodes() throws {
@@ -154,14 +185,15 @@ private func tempDir() throws -> URL {
     #expect(vault.items[1].username == "fran" && vault.items[1].content == "hunter2")
 }
 
-@Test func searchMatchesNameOrProjectSortedByName() {
+@Test func searchMatchesNameProjectOrFolderSortedByName() {
     let items = [
         Item(name: "stripe_key", kind: .secret, project: "shop", content: "a"),
-        Item(name: "AWS_TOKEN", kind: .secret, content: "b"),
+        Item(name: "AWS_TOKEN", kind: .secret, content: "b", folder: "Cloud"),
         Item(name: "id_ed25519", kind: .sshKey, project: "Shop", content: "c"),
     ]
     #expect(items.searched("").map(\.name) == ["AWS_TOKEN", "id_ed25519", "stripe_key"])
     #expect(items.searched("aws").map(\.name) == ["AWS_TOKEN"])
+    #expect(items.searched("cloud").map(\.name) == ["AWS_TOKEN"])
     #expect(items.searched("SHOP").map(\.name) == ["id_ed25519", "stripe_key"])
     #expect(items.searched("secret").isEmpty) // never matches on content
 }

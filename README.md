@@ -108,7 +108,7 @@ Make sure `~/.local/bin` is on your `PATH`, or use `make install-cli PREFIX=/usr
 
 ```bash
 cd my-project
-ovault init                        # creates .openvault with the project name (safe to commit)
+ovault init                        # creates .ovaultrc with the project name (safe to commit)
 ovault import .env                 # imports a .env into the project
 echo "sk_live_..." | ovault set STRIPE_KEY   # without VALUE it reads stdin (stays out of shell history)
 ovault run -- npm run dev          # runs with the secrets as environment variables
@@ -121,13 +121,17 @@ ovault export --format json        # combined environment (env | json)
 ovault list                        # project items, without values (-a for all)
 ```
 
-The project can also be declared by hand in a `.ovault` file (plain text, supports `#` comments; it only names the project and never contains secrets):
+`.ovaultrc` says what the repository loads (plain text, supports `#` comments; it only names things and never contains secrets). Every line adds to the selection, and each key can repeat:
 
 ```ini
-project-name=my-project
+project-name=my-project          # every item of the project
+secret-name=STRIPE_KEY           # an item by name, from any project
+folder-name=CI                   # every item in the folder
+secret-name=AWS_.*               # values are whole-name regexes…
+secret-name=WORKER_{1..12}_TOKEN # …and {a..b} is a numeric range ({01..12} keeps the zero padding)
 ```
 
-With it, `ovault load -- npm run dev` and `eval "$(ovault load)"` don't need the name. It is looked up in the current directory and upwards; if a directory contains both `.ovault` and `.openvault`, `.ovault` wins.
+With it, `ovault load -- npm run dev`, `eval "$(ovault load)"`, `run`, `export`, `get` and `list` don't need a name. Commands that write (`set`, `import`) use the first `project-name`. It is looked up in the current directory and upwards; a legacy `.openvault` (JSON) is still read. `ovault load` warns about lines that match nothing.
 
 #### Automatic loading (optional)
 
@@ -135,9 +139,9 @@ With it, `ovault load -- npm run dev` and `eval "$(ovault load)"` don't need the
 eval "$(ovault hook zsh)"   # in ~/.zshrc (or `ovault hook bash` in ~/.bashrc)
 ```
 
-When you enter a directory with a `.ovault` (or one of its subdirectories), the hook loads the project's variables; when you leave, it unsets them and deletes the temporary files. It never prompts for the master password: it only loads if `OPENVAULT_PASSWORD` is set; with the vault locked it warns once, and running `eval "$(ovault load)"` is enough to unlock and load. Note: a third-party repository with a `.ovault` that names one of your projects would receive that environment when you enter it; the hook warns every time it loads.
+When you enter a directory with a `.ovaultrc` (or one of its subdirectories), the hook loads the project's variables; when you leave, it unsets them and deletes the temporary files. It never prompts for the master password: it only loads if `OPENVAULT_PASSWORD` is set; with the vault locked it warns once, and running `eval "$(ovault load)"` is enough to unlock and load. Note: a third-party repository with a `.ovaultrc` that names your projects, secrets or folders would receive that environment when you enter it; the hook warns every time it loads.
 
-Every command accepts `--project <name>` so it doesn't depend on `.ovault`/`.openvault`. If an individual secret and a variable from a `.env` share the same name, the individual secret wins.
+Every command accepts `--project <name>` so it doesn't depend on `.ovaultrc`. If an individual secret and a variable from a `.env` share the same name, the individual secret wins.
 
 `ovault load` also exposes **passwords** (`NAME` and `NAME_USERNAME`; a name like "Postgres prod" becomes `POSTGRES_PROD`) and **files**: it writes them to a private temporary directory (`0700`, files `0600`) and exports their path (`AuthKey_AB12.p8` → `AUTHKEY_AB12_P8`). With `-- command` it deletes them when the command exits. SSH/GPG keys and "other" items are not loaded. Details in `ovault load --help`.
 
@@ -180,7 +184,7 @@ Signing, the DMG, and notarization are handled by [fastlane](fastlane/Fastfile) 
 Layout:
 
 ```
-Sources/OpenVaultCore/   encryption, vault format, .env parser, .openvault
+Sources/OpenVaultCore/   encryption, vault format, .env parser, .ovaultrc
 Sources/ovault/          CLI
 Tests/                   core tests
 App/                     SwiftUI app (project.yml + Sources/)

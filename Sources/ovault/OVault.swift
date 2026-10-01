@@ -15,20 +15,30 @@ struct OVault: ParsableCommand {
 // MARK: - Shared
 
 struct ProjectOption: ParsableArguments {
-    @Option(name: .shortAndLong, help: "Project (defaults to the one in the nearest .ovault or .openvault file).")
+    @Option(name: .shortAndLong, help: "Project (defaults to what the nearest .ovaultrc selects).")
     var project: String?
 
-    func resolve(required: Bool = true) throws -> String? {
-        try Self.resolve(project, required: required)
+    /// The project to write to: `--project`, or the first `project-name` of the nearest `.ovaultrc`.
+    func resolve() throws -> String {
+        guard let name = try Self.config(project)?.project else {
+            throw CLIError("No project: pass --project, or add a `project-name=my-project` line to .ovaultrc.")
+        }
+        return name
     }
 
-    static func resolve(_ explicit: String?, required: Bool = true) throws -> String? {
-        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        if let name = try explicit ?? ProjectConfig.find(from: cwd)?.project { return name }
-        if required {
-            throw CLIError("No project: pass one, or create a .ovault file with `project-name=my-project` (or run `ovault init`).")
+    /// What to read: just `--project` if given, else everything the nearest `.ovaultrc` selects.
+    func config() throws -> ProjectConfig { try Self.required(project) }
+
+    static func required(_ explicit: String?) throws -> ProjectConfig {
+        guard let config = try config(explicit) else {
+            throw CLIError("Nothing to load: pass a project, or create a .ovaultrc file with `project-name=my-project` (or run `ovault init`).")
         }
-        return nil
+        return config
+    }
+
+    static func config(_ explicit: String?) throws -> ProjectConfig? {
+        if let explicit { return ProjectConfig(project: explicit) }
+        return try ProjectConfig.find(from: URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
     }
 }
 
@@ -70,7 +80,7 @@ func readStdin() -> String {
 // MARK: - Commands
 
 struct Init: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Link the current directory to a project (creates .openvault).")
+    static let configuration = CommandConfiguration(abstract: "Link the current directory to a project (creates .ovaultrc).")
 
     @Option(name: .shortAndLong, help: "Project name (defaults to the directory name).")
     var project: String?
@@ -79,7 +89,7 @@ struct Init: ParsableCommand {
         let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let name = project ?? cwd.lastPathComponent
         try ProjectConfig(project: name).write(to: cwd)
-        print("✓ Created .openvault for project “\(name)”. It contains no secrets, so it's safe to commit.")
+        print("✓ Created .ovaultrc for project “\(name)”. It contains no secrets, so it's safe to commit.")
     }
 }
 
@@ -102,7 +112,7 @@ struct SetCommand: ParsableCommand {
                 vault.items.append(Item(name: self.key, kind: .secret, project: projectName, content: value))
             }
         }
-        print("✓ Saved \(self.key) to “\(projectName!)”.")
+        print("✓ Saved \(self.key) to “\(projectName)”.")
     }
 }
 
@@ -127,7 +137,7 @@ struct Import: ParsableCommand {
                 vault.items.append(Item(name: itemName, kind: .env, project: projectName, content: content))
             }
         }
-        print("✓ Imported \(DotEnv.parse(content).count) variables as “\(itemName)” into “\(projectName!)”.")
+        print("✓ Imported \(DotEnv.parse(content).count) variables as “\(itemName)” into “\(projectName)”.")
     }
 }
 
@@ -140,14 +150,15 @@ struct Get: ParsableCommand {
     @OptionGroup var project: ProjectOption
 
     func run() throws {
-        let projectName = try project.resolve(required: false)
+        let config = try ProjectOption.config(project.project)
         let (_, vault, _) = try unlock()
-        if !passphrase, let value = vault.mergedEnv(project: projectName)[name] {
+        let scoped = config?.items(in: vault) ?? vault.items
+        if !passphrase, let value = Vault.env(of: scoped)[name] {
             print(value)
             return
         }
         let candidates = vault.items.filter { $0.name == name }
-        guard let item = candidates.first(where: { $0.project == projectName }) ?? candidates.first else {
+        guard let item = candidates.first(where: scoped.contains) ?? candidates.first else {
             throw ValidationError("“\(name)” not found.")
         }
         if passphrase {
@@ -169,9 +180,9 @@ struct Export: ParsableCommand {
     @OptionGroup var project: ProjectOption
 
     func run() throws {
-        let projectName = try project.resolve()
+        let config = try project.config()
         let (_, vault, _) = try unlock()
-        let env = vault.mergedEnv(project: projectName)
+        let env = Vault.env(of: config.items(in: vault))
         switch format {
         case .env:
             print(DotEnv.serialize(env), terminator: "")
@@ -191,9 +202,9 @@ struct Run: ParsableCommand {
 
     func run() throws {
         guard !command.isEmpty else { throw ValidationError("Usage: ovault run -- <command> [args…]") }
-        let projectName = try project.resolve()
+        let config = try project.config()
         let (_, vault, _) = try unlock()
-        for (k, v) in vault.mergedEnv(project: projectName) { setenv(k, v, 1) }
+        for (k, v) in Vault.env(of: config.items(in: vault)) { setenv(k, v, 1) }
         unsetenv("OPENVAULT_PASSWORD")
         let argv = command.map { strdup($0) } + [nil]
         execvp(command[0], argv)
@@ -214,15 +225,26 @@ struct Load: ParsableCommand {
 
             eval "$(ovault load my-project)"
 
-        Without a project name, the one in the nearest .ovault file is used (in the current \
-        directory or any of its parents). It's a text file with a single \
-        `project-name=my-project` line; it allows # comments and contains no secrets:
+        Without a project name, what the nearest .ovaultrc file selects is loaded (in the \
+        current directory or any of its parents). It's a text file with any number of these \
+        lines; it allows # comments and contains no secrets:
+
+            project-name=my-project     every item of the project
+            secret-name=STRIPE_KEY      an item by name, from any project
+            folder-name=CI              every item in the folder
+
+        Values match a name exactly or as a whole-name regex, and {1..12} is a numeric \
+        range (zero-padded if the start is: {01..12}):
+
+            secret-name=AWS_.*
+            secret-name=WORKER_{1..12}_TOKEN
 
             ovault load -- npm run dev
             eval "$(ovault load)"
 
         What gets loaded:
-          · .env files and secrets: their variables as-is (on conflict, the secret wins).
+          · .env files and secrets: their variables as-is (on conflict, the secret wins; \
+        between two items of the same kind, the later one in the vault wins).
           · Passwords: NAME=password and NAME_USERNAME=username. If the item name isn't a \
         valid variable name, it's uppercased and everything else becomes _ \
         (“Postgres prod” → POSTGRES_PROD).
@@ -235,27 +257,32 @@ struct Load: ParsableCommand {
         Variables whose name isn't a valid identifier are skipped with a warning.
         """)
 
-    @Argument(help: "Project (defaults to the one in the nearest .ovault or .openvault file).") var project: String?
+    @Argument(help: "Project (defaults to what the nearest .ovaultrc selects).") var project: String?
     @Argument(parsing: .postTerminator, help: "Command to run, after `--`.") var command: [String] = []
     @Flag(help: "Fail instead of prompting for the master password when OPENVAULT_PASSWORD is unset (used by the hook).")
     var noPrompt = false
 
     func run() throws {
-        guard let name = try ProjectOption.resolve(project) else { return }
+        let config = try ProjectOption.required(project)
+        let name = project ?? ProjectConfig.fileName
         if command.isEmpty, isatty(STDOUT_FILENO) != 0 {
             // Printing exports to a terminal would only put the secrets on screen.
-            throw CLIError("To load the variables into this shell, use:  eval \"$(ovault load \(name))\"")
+            throw CLIError("To load the variables into this shell, use:  eval \"$(ovault load\(project.map { " " + $0 } ?? ""))\"")
         }
         let (_, vault, _) = try unlock(prompt: !noPrompt)
-        guard vault.projects.contains(name) else { throw CLIError("Project “\(name)” doesn't exist in the vault.") }
+        let items = config.items(in: vault)
+        guard !items.isEmpty else { throw CLIError("Nothing in the vault matches \(project.map { "project “\($0)”" } ?? ProjectConfig.fileName).") }
+        for rule in config.unmatched(in: vault) {
+            warn("ovault: \(rule.key.rawValue)=\(rule.pattern) matches nothing.")
+        }
 
-        var env = vault.mergedEnv(project: name)
+        var env = Vault.env(of: items)
         let invalid = env.keys.filter { !Shell.isValidName($0) }.sorted()
         for key in invalid { env[key] = nil }
         if !invalid.isEmpty {
             warn("ovault: skipping variables with invalid names: \(invalid.joined(separator: ", "))")
         }
-        let files = vault.fileEnv(project: name).filter { env[$0.key] == nil }
+        let files = Vault.fileEnv(of: items).filter { env[$0.key] == nil }
         let tmp = try materialize(files, into: &env)
 
         if command.isEmpty {
@@ -283,7 +310,7 @@ struct Hook: ParsableCommand {
 
             eval "$(ovault hook zsh)"
 
-        When you enter a directory with a .ovault (or .openvault) file, or one of its \
+        When you enter a directory with a .ovaultrc (or legacy .openvault) file, or one of its \
         subdirectories, the hook runs `ovault load` and exports the project's variables; \
         when you leave, it unsets them and removes the temporary files.
 
@@ -292,8 +319,8 @@ struct Hook: ParsableCommand {
         project and moves on; to load, run  eval "$(ovault load)"  yourself (it asks for the \
         password once) and the hook takes care of unloading when you leave.
 
-        The .ovault file only names a project; even so, entering someone else's repository \
-        that names one of your projects exposes that environment to whatever you run there. \
+        The .ovaultrc file only names things; even so, entering someone else's repository \
+        that names your projects, secrets or folders exposes them to whatever you run there. \
         The hook warns every time it loads something.
         """)
 
@@ -314,7 +341,7 @@ struct Hook: ParsableCommand {
     _ovault_hook() {
       local dir="$PWD" root="" out
       while [ -n "$dir" ]; do
-        if [ -f "$dir/.ovault" ] || [ -f "$dir/.openvault" ]; then root="$dir"; break; fi
+        if [ -f "$dir/.ovaultrc" ] || [ -f "$dir/.openvault" ]; then root="$dir"; break; fi
         dir="${dir%/*}"
       done
       [ "$root" = "${_OVAULT_ROOT-}" ] && return 0
@@ -383,11 +410,12 @@ struct List: ParsableCommand {
     @OptionGroup var project: ProjectOption
 
     func run() throws {
-        let projectName = all ? nil : try project.resolve(required: false)
+        let config = all ? nil : try ProjectOption.config(project.project)
         let (_, vault, _) = try unlock()
-        for item in vault.items(in: projectName).sorted(by: { $0.name < $1.name }) {
+        for item in (config?.items(in: vault) ?? vault.items).sorted(by: { $0.name < $1.name }) {
             let kind = item.kind.rawValue.padding(toLength: 7, withPad: " ", startingAt: 0)
-            print("\(kind)  \(item.name)\(item.project.map { "  [\($0)]" } ?? "")")
+            let place = [item.project, item.folder.map { "📁 " + $0 }].compactMap(\.self).joined(separator: ", ")
+            print("\(kind)  \(item.name)\(place.isEmpty ? "" : "  [\(place)]")")
         }
     }
 }

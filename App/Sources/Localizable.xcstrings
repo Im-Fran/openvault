@@ -1627,13 +1627,35 @@
         }
       }
     },
-    "“%@” doesn’t name a project. Add a line like: project-name=my-project": {
+    "“%@” doesn’t select anything. Add a line like: project-name=my-project": {
       "extractionState": "manual",
       "localizations": {
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "«%@» no define el proyecto. Agrega una línea como: project-name=mi-proyecto"
+            "value": "«%@» no selecciona nada. Agrega una línea como: project-name=mi-proyecto"
+          }
+        }
+      }
+    },
+    "“%@” has an invalid pattern “%@”.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» tiene un patrón inválido «%@»."
+          }
+        }
+      }
+    },
+    "“%@” has an unknown key “%@”. Use project-name, secret-name or folder-name.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» tiene una clave desconocida «%@». Usa project-name, secret-name o folder-name."
           }
         }
       }
