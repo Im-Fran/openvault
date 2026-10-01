@@ -1,6 +1,14 @@
 {
-  "originHash" : "11fd398ce254371bf8888a36fa0e720c20b08b4abf6c2a7b3e3dceedb71825cd",
+  "originHash" : "9b9af6c5b1dc96f41e142442d2e4b322544ba87f6ef55d71381ab068092fcb73",
   "pins" : [
+    {
+      "identity" : "openupdater",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Im-Fran/openupdater",
+      "state" : {
+        "revision" : "2a9b09de2cc6dc0d5987a9f1c8595dc0dd79bbe4"
+      }
+    },
     {
       "identity" : "swift-argument-parser",
       "kind" : "remoteSourceControl",
