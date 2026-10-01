@@ -6,7 +6,7 @@ import OpenVaultCore
 struct OVault: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "ovault",
-        abstract: "Usa los secretos de OpenVault en tus proyectos.",
+        abstract: "Use OpenVault secrets in your projects.",
         version: ovaultVersion,
         subcommands: [Init.self, SetCommand.self, Import.self, Get.self, Export.self, Run.self, Load.self, Hook.self, List.self]
     )
@@ -15,7 +15,7 @@ struct OVault: ParsableCommand {
 // MARK: - Shared
 
 struct ProjectOption: ParsableArguments {
-    @Option(name: .shortAndLong, help: "Proyecto (por defecto, el del archivo .ovault o .openvault más cercano).")
+    @Option(name: .shortAndLong, help: "Project (defaults to the one in the nearest .ovault or .openvault file).")
     var project: String?
 
     func resolve(required: Bool = true) throws -> String? {
@@ -26,7 +26,7 @@ struct ProjectOption: ParsableArguments {
         let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         if let name = try explicit ?? ProjectConfig.find(from: cwd)?.project { return name }
         if required {
-            throw CLIError("No hay proyecto: indícalo, o crea un archivo .ovault con `project-name=mi-proyecto` (o ejecuta `ovault init`).")
+            throw CLIError("No project: pass one, or create a .ovault file with `project-name=my-project` (or run `ovault init`).")
         }
         return nil
     }
@@ -49,11 +49,11 @@ func unlock(prompt: Bool = true) throws -> (VaultFile, Vault, VaultKey) {
     if let env = ProcessInfo.processInfo.environment["OPENVAULT_PASSWORD"] {
         password = env
     } else if !prompt {
-        throw CLIError("Vault bloqueado, no se cargó nada. Ejecuta  eval \"$(ovault load)\"  para desbloquearlo y cargar el proyecto.")
+        throw CLIError("Vault is locked; nothing was loaded. Run  eval \"$(ovault load)\"  to unlock it and load the project.")
     } else {
         var buf = [CChar](repeating: 0, count: 1024)
-        guard let p = readpassphrase("Contraseña maestra: ", &buf, buf.count, RPP_REQUIRE_TTY) else {
-            throw ValidationError("No se pudo leer la contraseña (sin TTY). Define OPENVAULT_PASSWORD.")
+        guard let p = readpassphrase("Master password: ", &buf, buf.count, RPP_REQUIRE_TTY) else {
+            throw ValidationError("Couldn't read the password (no TTY). Set OPENVAULT_PASSWORD.")
         }
         password = String(cString: p)
         buf.withUnsafeMutableBufferPointer { _ = memset($0.baseAddress, 0, $0.count) }
@@ -70,21 +70,21 @@ func readStdin() -> String {
 // MARK: - Commands
 
 struct Init: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Vincula el directorio actual a un proyecto (crea .openvault).")
+    static let configuration = CommandConfiguration(abstract: "Link the current directory to a project (creates .openvault).")
 
-    @Option(name: .shortAndLong, help: "Nombre del proyecto (por defecto, el nombre del directorio).")
+    @Option(name: .shortAndLong, help: "Project name (defaults to the directory name).")
     var project: String?
 
     func run() throws {
         let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let name = project ?? cwd.lastPathComponent
         try ProjectConfig(project: name).write(to: cwd)
-        print("✓ .openvault creado para el proyecto «\(name)». No contiene secretos; puedes commitearlo.")
+        print("✓ Created .openvault for project “\(name)”. It contains no secrets, so it's safe to commit.")
     }
 }
 
 struct SetCommand: ParsableCommand {
-    static let configuration = CommandConfiguration(commandName: "set", abstract: "Guarda un secreto individual. Sin VALUE, lo lee de stdin.")
+    static let configuration = CommandConfiguration(commandName: "set", abstract: "Save a single secret. Reads it from stdin if VALUE is omitted.")
 
     @Argument var key: String
     @Argument var value: String?
@@ -102,15 +102,15 @@ struct SetCommand: ParsableCommand {
                 vault.items.append(Item(name: self.key, kind: .secret, project: projectName, content: value))
             }
         }
-        print("✓ \(self.key) guardado en «\(projectName!)».")
+        print("✓ Saved \(self.key) to “\(projectName!)”.")
     }
 }
 
 struct Import: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Importa un archivo .env al proyecto.")
+    static let configuration = CommandConfiguration(abstract: "Import a .env file into the project.")
 
-    @Argument(help: "Ruta al archivo .env.") var path: String
-    @Option(help: "Nombre del item (por defecto, el nombre del archivo).") var name: String?
+    @Argument(help: "Path to the .env file.") var path: String
+    @Option(help: "Item name (defaults to the file name).") var name: String?
     @OptionGroup var project: ProjectOption
 
     func run() throws {
@@ -127,16 +127,16 @@ struct Import: ParsableCommand {
                 vault.items.append(Item(name: itemName, kind: .env, project: projectName, content: content))
             }
         }
-        print("✓ \(DotEnv.parse(content).count) variables importadas como «\(itemName)» en «\(projectName!)».")
+        print("✓ Imported \(DotEnv.parse(content).count) variables as “\(itemName)” into “\(projectName!)”.")
     }
 }
 
 struct Get: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Imprime un valor: variable del proyecto, o el contenido de un item por nombre.")
+        abstract: "Print a value: a project variable, or an item's content by name.")
 
     @Argument var name: String
-    @Flag(help: "Imprime la passphrase del item en vez de su contenido.") var passphrase = false
+    @Flag(help: "Print the item's passphrase instead of its content.") var passphrase = false
     @OptionGroup var project: ProjectOption
 
     func run() throws {
@@ -148,10 +148,10 @@ struct Get: ParsableCommand {
         }
         let candidates = vault.items.filter { $0.name == name }
         guard let item = candidates.first(where: { $0.project == projectName }) ?? candidates.first else {
-            throw ValidationError("No se encontró «\(name)».")
+            throw ValidationError("“\(name)” not found.")
         }
         if passphrase {
-            guard let p = item.passphrase else { throw ValidationError("«\(name)» no tiene passphrase.") }
+            guard let p = item.passphrase else { throw ValidationError("“\(name)” has no passphrase.") }
             print(p)
         } else if item.kind == .file {
             FileHandle.standardOutput.write(item.data ?? Data()) // raw bytes: `ovault get cert.p12 > cert.p12`
@@ -162,7 +162,7 @@ struct Get: ParsableCommand {
 }
 
 struct Export: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Exporta el entorno combinado del proyecto.")
+    static let configuration = CommandConfiguration(abstract: "Export the project's merged environment.")
 
     enum Format: String, ExpressibleByArgument { case env, json }
     @Option var format: Format = .env
@@ -184,76 +184,76 @@ struct Export: ParsableCommand {
 }
 
 struct Run: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Ejecuta un comando con los secretos del proyecto como variables de entorno.")
+    static let configuration = CommandConfiguration(abstract: "Run a command with the project's secrets as environment variables.")
 
     @OptionGroup var project: ProjectOption
     @Argument(parsing: .postTerminator) var command: [String]
 
     func run() throws {
-        guard !command.isEmpty else { throw ValidationError("Uso: ovault run -- <comando> [args…]") }
+        guard !command.isEmpty else { throw ValidationError("Usage: ovault run -- <command> [args…]") }
         let projectName = try project.resolve()
         let (_, vault, _) = try unlock()
         for (k, v) in vault.mergedEnv(project: projectName) { setenv(k, v, 1) }
         unsetenv("OPENVAULT_PASSWORD")
         let argv = command.map { strdup($0) } + [nil]
         execvp(command[0], argv)
-        throw ValidationError("No se pudo ejecutar «\(command[0])»: \(String(cString: strerror(errno)))")
+        throw ValidationError("Couldn't run “\(command[0])”: \(String(cString: strerror(errno)))")
     }
 }
 
 struct Load: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Carga el entorno del proyecto en tu shell, o ejecuta un comando con él.",
+        abstract: "Load the project's environment into your shell, or run a command with it.",
         discussion: """
-        Con comando, lo ejecuta con el entorno del proyecto y devuelve su código de salida:
+        With a command, runs it with the project's environment and returns its exit code:
 
-            ovault load mi-proyecto -- npm run dev
+            ovault load my-project -- npm run dev
 
-        Sin comando, imprime líneas `export` para que las evalúe tu shell (un proceso hijo \
-        no puede modificar el entorno del shell que lo lanzó):
+        Without a command, prints `export` lines for your shell to evaluate (a child process \
+        can't change the environment of the shell that launched it):
 
-            eval "$(ovault load mi-proyecto)"
+            eval "$(ovault load my-project)"
 
-        Sin nombre de proyecto se usa el del archivo .ovault más cercano (en el directorio \
-        actual o en alguno de sus padres). Es un archivo de texto con una línea \
-        `project-name=mi-proyecto`; admite comentarios con # y no contiene secretos:
+        Without a project name, the one in the nearest .ovault file is used (in the current \
+        directory or any of its parents). It's a text file with a single \
+        `project-name=my-project` line; it allows # comments and contains no secrets:
 
             ovault load -- npm run dev
             eval "$(ovault load)"
 
-        Qué se carga:
-          · Archivos .env y secretos: sus variables tal cual (si chocan, gana el secreto).
-          · Contraseñas: NOMBRE=contraseña y NOMBRE_USERNAME=usuario. Si el nombre del item \
-        no es un nombre de variable válido se pasa a mayúsculas y lo demás se cambia por _ \
-        («Postgres prod» → POSTGRES_PROD).
-          · Archivos: se escriben en un directorio temporal privado (0700, archivo 0600) y la \
-        variable, nombrada con la misma regla («AuthKey_AB12.p8» → AUTHKEY_AB12_P8), contiene \
-        la ruta. Con comando se borran al terminar; con eval quedan hasta el siguiente \
-        `ovault load` en ese shell.
-          · Claves SSH, claves GPG y «otros» no se cargan: no tienen un mapeo claro a variables.
+        What gets loaded:
+          · .env files and secrets: their variables as-is (on conflict, the secret wins).
+          · Passwords: NAME=password and NAME_USERNAME=username. If the item name isn't a \
+        valid variable name, it's uppercased and everything else becomes _ \
+        (“Postgres prod” → POSTGRES_PROD).
+          · Files: written to a private temporary directory (0700, files 0600), and the \
+        variable, named with the same rule (“AuthKey_AB12.p8” → AUTHKEY_AB12_P8), holds \
+        the path. With a command they're removed when it exits; with eval they stay until \
+        the next `ovault load` in that shell.
+          · SSH keys, GPG keys and “other” items aren't loaded: they don't map cleanly to variables.
 
-        Las variables cuyo nombre no es un identificador válido se omiten con un aviso.
+        Variables whose name isn't a valid identifier are skipped with a warning.
         """)
 
-    @Argument(help: "Proyecto (por defecto, el del archivo .ovault o .openvault más cercano).") var project: String?
-    @Argument(parsing: .postTerminator, help: "Comando a ejecutar, después de `--`.") var command: [String] = []
-    @Flag(help: "Falla en vez de pedir la contraseña maestra si no hay OPENVAULT_PASSWORD (lo usa el hook).")
+    @Argument(help: "Project (defaults to the one in the nearest .ovault or .openvault file).") var project: String?
+    @Argument(parsing: .postTerminator, help: "Command to run, after `--`.") var command: [String] = []
+    @Flag(help: "Fail instead of prompting for the master password when OPENVAULT_PASSWORD is unset (used by the hook).")
     var noPrompt = false
 
     func run() throws {
         guard let name = try ProjectOption.resolve(project) else { return }
         if command.isEmpty, isatty(STDOUT_FILENO) != 0 {
             // Printing exports to a terminal would only put the secrets on screen.
-            throw CLIError("Para cargar las variables en este shell usa:  eval \"$(ovault load \(name))\"")
+            throw CLIError("To load the variables into this shell, use:  eval \"$(ovault load \(name))\"")
         }
         let (_, vault, _) = try unlock(prompt: !noPrompt)
-        guard vault.projects.contains(name) else { throw CLIError("El proyecto «\(name)» no existe en el vault.") }
+        guard vault.projects.contains(name) else { throw CLIError("Project “\(name)” doesn't exist in the vault.") }
 
         var env = vault.mergedEnv(project: name)
         let invalid = env.keys.filter { !Shell.isValidName($0) }.sorted()
         for key in invalid { env[key] = nil }
         if !invalid.isEmpty {
-            warn("ovault: se omiten variables con nombre no válido: \(invalid.joined(separator: ", "))")
+            warn("ovault: skipping variables with invalid names: \(invalid.joined(separator: ", "))")
         }
         let files = vault.fileEnv(project: name).filter { env[$0.key] == nil }
         let tmp = try materialize(files, into: &env)
@@ -265,7 +265,7 @@ struct Load: ParsableCommand {
             script += "_OVAULT_VARS=\(Shell.quote(env.keys.sorted().joined(separator: " ")))\n"
             script += tmp.map { "_OVAULT_TMP=\(Shell.quote($0.path))\n" } ?? "unset _OVAULT_TMP\n"
             print(script, terminator: "")
-            warn("ovault: «\(name)» cargado (\(env.count) variables).")
+            warn("ovault: loaded “\(name)” (\(env.count) variables).")
         } else {
             defer { if let tmp { try? FileManager.default.removeItem(at: tmp) } }
             var full = ProcessInfo.processInfo.environment.merging(env) { $1 }
@@ -277,28 +277,28 @@ struct Load: ParsableCommand {
 
 struct Hook: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Imprime un hook de shell que carga el proyecto al entrar a su directorio y lo descarga al salir.",
+        abstract: "Print a shell hook that loads the project when you enter its directory and unloads it when you leave.",
         discussion: """
-        Agrégalo a tu ~/.zshrc o ~/.bashrc:
+        Add it to your ~/.zshrc or ~/.bashrc:
 
             eval "$(ovault hook zsh)"
 
-        Al entrar a un directorio con un archivo .ovault (o .openvault), o a uno de sus \
-        subdirectorios, el hook ejecuta `ovault load` y exporta las variables del proyecto; \
-        al salir las quita y borra los archivos temporales.
+        When you enter a directory with a .ovault (or .openvault) file, or one of its \
+        subdirectories, the hook runs `ovault load` and exports the project's variables; \
+        when you leave, it unsets them and removes the temporary files.
 
-        El hook nunca pide la contraseña maestra ni se salta el desbloqueo: solo carga si \
-        OPENVAULT_PASSWORD está definida en el shell. Si no, avisa una vez al entrar al \
-        proyecto y sigue; para cargar, ejecuta tú  eval "$(ovault load)"  (pide la contraseña \
-        una vez) y el hook se encarga de descargar al salir.
+        The hook never prompts for the master password or bypasses unlocking: it only loads \
+        if OPENVAULT_PASSWORD is set in the shell. Otherwise it warns once when you enter the \
+        project and moves on; to load, run  eval "$(ovault load)"  yourself (it asks for the \
+        password once) and the hook takes care of unloading when you leave.
 
-        El archivo .ovault solo nombra un proyecto; aun así, entrar a un repositorio ajeno que \
-        nombre uno de tus proyectos expone ese entorno a lo que ejecutes ahí. El hook avisa \
-        cada vez que carga algo.
+        The .ovault file only names a project; even so, entering someone else's repository \
+        that names one of your projects exposes that environment to whatever you run there. \
+        The hook warns every time it loads something.
         """)
 
     enum ShellKind: String, ExpressibleByArgument, CaseIterable { case zsh, bash }
-    @Argument(help: "zsh o bash.") var shell: ShellKind
+    @Argument(help: "zsh or bash.") var shell: ShellKind
 
     func run() {
         print(Self.script)
@@ -377,9 +377,9 @@ func spawnAndWait(_ command: [String], environment: [String: String]) throws -> 
 }
 
 struct List: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Lista los items del proyecto (sin valores).")
+    static let configuration = CommandConfiguration(abstract: "List the project's items (without values).")
 
-    @Flag(name: .shortAndLong, help: "Todos los proyectos.") var all = false
+    @Flag(name: .shortAndLong, help: "All projects.") var all = false
     @OptionGroup var project: ProjectOption
 
     func run() throws {

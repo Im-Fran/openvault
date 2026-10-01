@@ -12,7 +12,7 @@ cli:
 install-cli: cli
 	install -d $(PREFIX)/bin
 	install -m 0755 .build/release/ovault $(PREFIX)/bin/ovault
-	@echo "ovault instalado en $(PREFIX)/bin (asegúrate de tenerlo en tu PATH)"
+	@echo "ovault installed to $(PREFIX)/bin (make sure it's on your PATH)"
 
 project:
 	cd App && xcodegen generate --quiet
