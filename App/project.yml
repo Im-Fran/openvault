@@ -7,6 +7,9 @@ options:
 packages:
   OpenVault:
     path: ..
+  OpenUpdater:
+    url: https://github.com/Im-Fran/openupdater
+    revision: 2a9b09de2cc6dc0d5987a9f1c8595dc0dd79bbe4
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -32,6 +35,7 @@ targets:
     dependencies:
       - package: OpenVault
         product: OpenVaultCore
+      - package: OpenUpdater
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: cl.franciscosolis.openvault

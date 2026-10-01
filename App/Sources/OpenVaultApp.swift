@@ -1,4 +1,5 @@
 import AppKit
+import OpenUpdater
 import OpenVaultCore
 import SwiftUI
 
@@ -7,6 +8,14 @@ struct OpenVaultApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @State private var store = VaultStore()
     @AppStorage("menuBarIcon") private var menuBarIcon = false
+    @State private var updater = Updater(repo: "Im-Fran/openvault", publicKey: "2gpjUv7A+kW83D8XgmvznGoNPLNZRfoLNjDSIohJioM=")
+
+    init() {
+        // Local builds aren't Developer ID signed, so an update would fail the signature check anyway.
+        #if !DEBUG
+        updater.start()
+        #endif
+    }
 
     var body: some Scene {
         WindowGroup(id: MainWindow.id) {
@@ -15,6 +24,9 @@ struct OpenVaultApp: App {
                 .frame(minWidth: 860, minHeight: 540)
         }
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") { updater.checkNow() }
+            }
             CommandGroup(replacing: .newItem) {
                 Button("New Item") {
                     store.editorDraft = EditorDraft(item: Item(name: "", kind: .secret, content: ""), isNew: true)
@@ -30,7 +42,16 @@ struct OpenVaultApp: App {
         }
 
         Settings {
-            SettingsView().environment(store)
+            TabView {
+                Tab("General", systemImage: "gearshape") {
+                    SettingsView().environment(store)
+                }
+                Tab("Updates", systemImage: "arrow.triangle.2.circlepath") {
+                    UpdaterSettingsView(updater: updater)
+                        .frame(width: 480)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
 
         // Template SF Symbol: adapts to the menu bar and shows the lock state at a glance.

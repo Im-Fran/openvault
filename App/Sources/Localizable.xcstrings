@@ -262,6 +262,16 @@
         }
       }
     },
+    "Check for Updates…": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar actualizaciones…"
+          }
+        }
+      }
+    },
     "Choose File…": {
       "localizations": {
         "es-419": {
@@ -654,6 +664,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Claves GPG"
+          }
+        }
+      }
+    },
+    "General": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
           }
         }
       }
@@ -1452,6 +1472,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Desbloquear con Touch ID"
+          }
+        }
+      }
+    },
+    "Updates": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizaciones"
           }
         }
       }
