@@ -5,6 +5,7 @@ enum SidebarSelection: Hashable {
     case all
     case kind(Item.Kind)
     case project(String)
+    case folder(String)
 }
 
 struct ContentView: View {
@@ -13,6 +14,7 @@ struct ContentView: View {
     @State private var selection: Item.ID?
     @State private var search = ""
     @State private var dropTargeted = false
+    @AppStorage("groupByProject") private var groupByProject = false
 
     private var filtered: [Item] {
         store.vault.items
@@ -21,6 +23,7 @@ struct ContentView: View {
                 case .all: true
                 case .kind(let kind): item.kind == kind
                 case .project(let project): item.project == project
+                case .folder(let folder): item.folder == folder
                 }
             }
             .searched(search)
@@ -30,7 +33,7 @@ struct ContentView: View {
         NavigationSplitView {
             Sidebar(selection: $sidebar)
         } content: {
-            ItemList(items: filtered, selection: $selection)
+            ItemList(items: filtered, groupByProject: groupByProject, selection: $selection)
                 .searchable(text: $search, placement: .sidebar, prompt: "Search")
                 .navigationTitle(title)
         } detail: {
@@ -43,6 +46,10 @@ struct ContentView: View {
             }
         }
         .toolbar {
+            ToolbarItem {
+                Toggle("Group by Project", systemImage: "square.stack.3d.up", isOn: $groupByProject.animation(Motion.standard))
+                    .help("Group by Project")
+            }
             ToolbarItem {
                 Button("New Item", systemImage: "plus") { newItem() }
                     .help("New Item (⌘N)")
@@ -78,14 +85,16 @@ struct ContentView: View {
         case .all: String(localized: "All")
         case .kind(let kind): kind.title
         case .project(let project): project
+        case .folder(let folder): folder
         }
     }
 
-    /// New items inherit the current sidebar context (kind or project).
+    /// New items inherit the current sidebar context (kind, project or folder).
     private func newItem() {
         var item = Item(name: "", kind: .secret, content: "")
         if case .kind(let kind) = sidebar { item.kind = kind }
         if case .project(let project) = sidebar { item.project = project }
+        if case .folder(let folder) = sidebar { item.folder = folder }
         store.editorDraft = EditorDraft(item: item, isNew: true)
     }
 
@@ -101,6 +110,7 @@ struct ContentView: View {
             return false
         }
         if case .project(let project) = sidebar { item.project = project }
+        if case .folder(let folder) = sidebar { item.folder = folder }
         store.editorDraft = EditorDraft(item: item, isNew: true)
         return true
     }
@@ -132,6 +142,16 @@ private struct Sidebar: View {
                     }
                 }
             }
+
+            if !store.vault.folders.isEmpty {
+                Section("Folders") {
+                    ForEach(store.vault.folders, id: \.self) { folder in
+                        row(folder, symbol: "folder.fill", tint: .accentColor,
+                            count: store.vault.items.count { $0.folder == folder })
+                            .tag(SidebarSelection.folder(folder))
+                    }
+                }
+            }
         }
         .navigationSplitViewColumnWidth(min: 180, ideal: 210)
     }
@@ -157,6 +177,7 @@ struct ItemRow: View {
                 Text(item.name).font(.body.weight(.medium)).lineLimit(1)
                 HStack(spacing: 4) {
                     if let project = item.project { Text(project) ; Text(verbatim: "·") }
+                    if let folder = item.folder { Label(folder, systemImage: "folder").labelStyle(.titleAndIcon) ; Text(verbatim: "·") }
                     Text(item.updatedAt, format: .relative(presentation: .named))
                 }
                 .font(.caption)
@@ -170,16 +191,30 @@ struct ItemRow: View {
 
 private struct ItemList: View {
     let items: [Item]
+    let groupByProject: Bool
     @Binding var selection: Item.ID?
     @Environment(VaultStore.self) private var store
     @State private var pendingDelete: Item?
 
+    /// One section per project (by name), items without one last.
+    private var groups: [(project: String?, items: [Item])] {
+        Dictionary(grouping: items, by: \.project)
+            .map { ($0.key, $0.value) }
+            .sorted { a, b in
+                guard let pa = a.project else { return false }
+                guard let pb = b.project else { return true }
+                return pa.localizedStandardCompare(pb) == .orderedAscending
+            }
+    }
+
     var body: some View {
-        List(items, selection: $selection) { item in
-            ItemRow(item: item)
-            .contextMenu {
-                Button("Edit") { store.editorDraft = EditorDraft(item: item, isNew: false) }
-                Button("Delete", role: .destructive) { pendingDelete = item }
+        List(selection: $selection) {
+            if groupByProject {
+                ForEach(groups, id: \.project) { group in
+                    Section(group.project ?? String(localized: "No Project")) { rows(group.items) }
+                }
+            } else {
+                rows(items)
             }
         }
         .animation(Motion.standard, value: items)
@@ -203,5 +238,15 @@ private struct ItemList: View {
             Text("This action can’t be undone.")
         }
         .navigationSplitViewColumnWidth(min: 240, ideal: 280)
+    }
+
+    private func rows(_ items: [Item]) -> some View {
+        ForEach(items) { item in
+            ItemRow(item: item)
+                .contextMenu {
+                    Button("Edit") { store.editorDraft = EditorDraft(item: item, isNew: false) }
+                    Button("Delete", role: .destructive) { pendingDelete = item }
+                }
+        }
     }
 }

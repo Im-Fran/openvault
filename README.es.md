@@ -40,7 +40,7 @@ Ambos leen el mismo archivo directamente, así que el CLI funciona aunque la app
 - **Vault cifrado** — AES-256-GCM con clave derivada por PBKDF2-SHA256 (600.000 iteraciones). Nada se guarda en texto plano.
 - **Touch ID** — desbloqueo con la clave guardada en el Keychain protegido por biometría.
 - **Tipos de item** — archivos `.env`, secretos individuales, contraseñas (usuario, contraseña, URL), claves SSH, claves GPG, archivos arbitrarios (`.p12`, `.p8`, JSON… cifrados byte a byte y exportables de vuelta a disco) y otros.
-- **Proyectos** — agrupa items por proyecto; el CLI resuelve el proyecto desde un archivo `.openvault` en el repo.
+- **Proyectos y carpetas** — agrupa items por proyecto (opcionalmente como secciones en la lista) y por carpeta; el CLI carga lo que selecciona un archivo `.ovaultrc` en el repo.
 - **`ovault run`** — ejecuta cualquier comando con los secretos del proyecto como variables de entorno.
 - **Claves SSH** — genera claves ed25519, muestra clave pública y fingerprint, y exporta a `~/.ssh`.
 - **Claves GPG** — muestra fingerprint e identidad sin importar la clave a tu keyring.

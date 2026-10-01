@@ -116,6 +116,11 @@ struct ItemDetailView: View {
                             .padding(.horizontal, 7).padding(.vertical, 1)
                             .background(.quaternary, in: .capsule)
                     }
+                    if let folder = item.folder {
+                        Label(folder, systemImage: "folder")
+                            .padding(.horizontal, 7).padding(.vertical, 1)
+                            .background(.quaternary, in: .capsule)
+                    }
                 }
                 .font(.callout)
                 .foregroundStyle(.secondary)

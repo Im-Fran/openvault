@@ -40,7 +40,7 @@ Both read the same file directly, so the CLI works even when the app is closed, 
 - **Encrypted vault** — AES-256-GCM with a key derived via PBKDF2-SHA256 (600,000 iterations). Nothing is stored in plain text.
 - **Touch ID** — unlock with the key stored in a biometry-protected Keychain item.
 - **Item types** — `.env` files, individual secrets, passwords (username, password, URL), SSH keys, GPG keys, arbitrary files (`.p12`, `.p8`, JSON… encrypted byte for byte and exportable back to disk), and others.
-- **Projects** — group items by project; the CLI resolves the project from a `.openvault` file in the repo.
+- **Projects and folders** — group items by project (optionally shown as sections in the list) and by folder; the CLI loads what a `.ovaultrc` file in the repo selects.
 - **`ovault run`** — run any command with the project's secrets as environment variables.
 - **SSH keys** — generate ed25519 keys, view the public key and fingerprint, and export to `~/.ssh`.
 - **GPG keys** — view the fingerprint and identity without importing the key into your keyring.

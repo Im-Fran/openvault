@@ -597,6 +597,46 @@
         }
       }
     },
+    "Folder": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carpeta"
+          }
+        }
+      }
+    },
+    "Folders": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carpetas"
+          }
+        }
+      }
+    },
+    "Group by Project": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agrupar por proyecto"
+          }
+        }
+      }
+    },
+    "No Project": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin proyecto"
+          }
+        }
+      }
+    },
     "Use Touch ID or enter your master password.": {
       "localizations": {
         "es-419": {

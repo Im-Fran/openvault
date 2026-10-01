@@ -9,6 +9,7 @@ struct ItemEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var item: Item
     @State private var project: String
+    @State private var folder: String
     @State private var passphrase: String
     @State private var showPassphrase = false
     @State private var generating = false
@@ -22,6 +23,7 @@ struct ItemEditorView: View {
         self.onSave = onSave
         _item = State(initialValue: draft.item)
         _project = State(initialValue: draft.item.project ?? "")
+        _folder = State(initialValue: draft.item.folder ?? "")
         _passphrase = State(initialValue: draft.item.passphrase ?? "")
     }
 
@@ -35,7 +37,7 @@ struct ItemEditorView: View {
     }
 
     private var isDirty: Bool {
-        item != draft.item || project != (draft.item.project ?? "") || passphrase != (draft.item.passphrase ?? "")
+        item != draft.item || project != (draft.item.project ?? "") || folder != (draft.item.folder ?? "") || passphrase != (draft.item.passphrase ?? "")
             || (draft.isNew && !draft.item.content.isEmpty)
     }
 
@@ -60,6 +62,12 @@ struct ItemEditorView: View {
                     TextField("Project", text: $project, prompt: Text("Optional"))
                         .textInputSuggestions {
                             ForEach(store.vault.projects.filter { project.isEmpty || $0.localizedCaseInsensitiveContains(project) }, id: \.self) {
+                                Text($0).textInputCompletion($0)
+                            }
+                        }
+                    TextField("Folder", text: $folder, prompt: Text("Optional"))
+                        .textInputSuggestions {
+                            ForEach(store.vault.folders.filter { folder.isEmpty || $0.localizedCaseInsensitiveContains(folder) }, id: \.self) {
                                 Text($0).textInputCompletion($0)
                             }
                         }
@@ -220,6 +228,8 @@ struct ItemEditorView: View {
         result.name = result.name.trimmingCharacters(in: .whitespaces)
         let trimmedProject = project.trimmingCharacters(in: .whitespaces)
         result.project = trimmedProject.isEmpty ? nil : trimmedProject
+        let trimmedFolder = folder.trimmingCharacters(in: .whitespaces)
+        result.folder = trimmedFolder.isEmpty ? nil : trimmedFolder
         result.passphrase = passphrase.isEmpty ? nil : passphrase
         // Drop fields that belong to another kind (the kind may have been switched mid-edit).
         if result.kind != .password { result.username = nil; result.url = nil }
