@@ -71,8 +71,10 @@ private struct RootView: View {
                 ContentView()
                     .transition(.opacity)
             } else {
+                // Fade only: scaling makes the embedded Touch ID view lay out with "invalid dimensions",
+                // and LocalAuthentication cancels the evaluation.
                 LockView()
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .transition(.opacity)
             }
         }
         .animation(Motion.standard, value: store.state)

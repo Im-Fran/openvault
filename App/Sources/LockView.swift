@@ -1,9 +1,12 @@
 import AppKit
+import LocalAuthentication
+import LocalAuthenticationEmbeddedUI
 import SwiftUI
 
 struct LockView: View {
     @Environment(VaultStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.appearsActive) private var appearsActive
 
     @State private var password = ""
     @State private var confirmation = ""
@@ -11,8 +14,11 @@ struct LockView: View {
     @State private var showError = false
     @State private var working = false
     @FocusState private var focused: Bool
+    /// One context per attempt: an evaluated or invalidated LAContext can't be reused.
+    @State private var authContext = LAContext()
 
     private var isSetup: Bool { store.state == .setup }
+    private var showsTouchID: Bool { !isSetup && store.biometricsEnrolled }
 
     var body: some View {
         VStack(spacing: 22) {
@@ -21,13 +27,26 @@ struct LockView: View {
                 .frame(width: 56, height: 56)
                 .foregroundStyle(Brand.gradient)
                 .accessibilityHidden(true)
+                .overlay(alignment: .bottomTrailing) {
+                    if showsTouchID {
+                        // Inline Touch ID badge, like Passwords: no system dialog, just the sensor glyph.
+                        EmbeddedTouchID(context: authContext, onAttach: evaluateTouchID)
+                            .id(ObjectIdentifier(authContext))
+                            .padding(3)
+                            .background(.white, in: .circle) // the glyph is drawn for a light backdrop, as in Passwords
+                            .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                            .offset(x: 10, y: 8)
+                            .help("Unlock with Touch ID")
+                            .accessibilityLabel("Unlock with Touch ID")
+                    }
+                }
 
             VStack(spacing: 6) {
                 Text(isSetup ? "Create Your Vault" : "OpenVault Is Locked")
                     .font(.title2.weight(.semibold))
                 Text(isSetup
                      ? "Your master password encrypts all your secrets. It can’t be recovered if you forget it."
-                     : "Enter your master password.")
+                     : showsTouchID ? "Use Touch ID or enter your master password." : "Enter your master password.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -72,28 +91,16 @@ struct LockView: View {
                 Text(hint).font(.caption).foregroundStyle(.secondary).transition(.opacity)
             }
 
-            HStack(spacing: 10) {
-                if !isSetup, store.biometricsEnrolled {
-                    Button {
-                        Task { await store.unlockWithBiometrics() }
-                    } label: {
-                        Image(systemName: "touchid")
-                    }
-                    .controlSize(.large)
-                    .help("Unlock with Touch ID")
-                    .accessibilityLabel("Unlock with Touch ID")
-                }
-                Button(action: submit) {
-                    Text(isSetup ? "Create Vault" : "Unlock")
-                        .frame(maxWidth: .infinity)
-                        .opacity(working ? 0 : 1)
-                        .overlay { if working { ProgressView().controlSize(.small) } }
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .keyboardShortcut(.defaultAction)
-                .disabled(!canSubmit || working)
+            Button(action: submit) {
+                Text(isSetup ? "Create Vault" : "Unlock")
+                    .frame(maxWidth: .infinity)
+                    .opacity(working ? 0 : 1)
+                    .overlay { if working { ProgressView().controlSize(.small) } }
             }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .keyboardShortcut(.defaultAction)
+            .disabled(!canSubmit || working)
         }
         .padding(32)
         .frame(width: 380)
@@ -105,11 +112,18 @@ struct LockView: View {
                 .ignoresSafeArea()
         }
         .animation(Motion.standard, value: isSetup)
-        .onAppear {
-            focused = true
-            if !isSetup, store.biometricsEnrolled { Task { await store.unlockWithBiometrics() } }
-        }
+        .onAppear { focused = true }
+        // Only ask for Touch ID while the window is frontmost; going to the background cancels it.
+        // A fresh context swaps in a fresh badge, which starts the evaluation once it's in the window.
+        .onChange(of: appearsActive) { appearsActive ? authContext = LAContext() : authContext.invalidate() }
+        .onDisappear { authContext.invalidate() }
         .onChange(of: password) { withAnimation(Motion.standard) { showError = false } }
+    }
+
+    /// Called by the badge once it's in a window: evaluating earlier leaves it blank.
+    private func evaluateTouchID(_ context: LAContext) {
+        guard appearsActive, context === authContext else { return }
+        Task { await store.unlockWithBiometrics(context: context) }
     }
 
     private var setupHint: String? {
@@ -139,6 +153,35 @@ struct LockView: View {
                 password = ""
                 focused = true
             }
+        }
+    }
+}
+
+private struct EmbeddedTouchID: NSViewRepresentable {
+    let context: LAContext
+    let onAttach: (LAContext) -> Void
+
+    func makeNSView(context: Context) -> AuthView {
+        let view = AuthView(context: self.context, controlSize: .small)
+        view.onAttach = { [onAttach, authContext = self.context] in onAttach(authContext) }
+        return view
+    }
+
+    func updateNSView(_ nsView: AuthView, context: Context) {}
+
+    // The view sizes itself from its control size; SwiftUI's proposal would stretch it.
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView: AuthView, context: Context) -> CGSize? {
+        nsView.fittingSize
+    }
+
+    final class AuthView: LAAuthenticationView {
+        var onAttach: (() -> Void)?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard window != nil, let onAttach else { return }
+            self.onAttach = nil // once per context
+            onAttach()
         }
     }
 }

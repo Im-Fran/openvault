@@ -1,4 +1,5 @@
 import AppKit
+import LocalAuthentication
 import OpenVaultCore
 import SwiftUI
 
@@ -52,8 +53,8 @@ final class VaultStore {
         }
     }
 
-    func unlockWithBiometrics() async {
-        guard let raw = await Biometrics.load(reason: String(localized: "unlock OpenVault")),
+    func unlockWithBiometrics(context: LAContext = LAContext()) async {
+        guard let raw = await Biometrics.load(reason: String(localized: "unlock OpenVault"), context: context),
               let key = try? file.key(fromRaw: raw),
               let vault = try? file.load(key: key)
         else {

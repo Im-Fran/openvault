@@ -26,27 +26,32 @@ nonisolated enum Biometrics {
         return status == errSecSuccess || status == errSecInteractionNotAllowed
     }
 
+    private static var accessControl: SecAccessControl? {
+        SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, .biometryCurrentSet, nil)
+    }
+
     static func store(_ key: Data) -> Bool {
         delete()
-        guard let access = SecAccessControlCreateWithFlags(
-            nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, .biometryCurrentSet, nil) else { return false }
+        guard let access = accessControl else { return false }
         var query = base
         query[kSecValueData as String] = key
         query[kSecAttrAccessControl as String] = access
         return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
     }
 
-    static func load(reason: String) async -> Data? {
-        await Task.detached {
-            let context = LAContext()
-            context.localizedReason = reason
-            var query = base
-            query[kSecReturnData as String] = true
-            query[kSecUseAuthenticationContext as String] = context
-            var result: CFTypeRef?
-            guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess else { return nil }
-            return result as? Data
-        }.value
+    /// Authenticates first, then reads with the same context so the Keychain doesn't prompt again.
+    /// A context attached to an `LAAuthenticationView` authenticates inline instead of in a system dialog.
+    @MainActor static func load(reason: String, context: LAContext = LAContext()) async -> Data? {
+        guard let access = accessControl,
+              (try? await context.evaluateAccessControl(access, operation: .useItem, localizedReason: reason)) == true
+        else { return nil }
+        context.interactionNotAllowed = true
+        var query = base
+        query[kSecReturnData as String] = true
+        query[kSecUseAuthenticationContext as String] = context
+        var result: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess else { return nil }
+        return result as? Data
     }
 
     static func delete() {
