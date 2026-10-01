@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var search = ""
     @State private var dropTargeted = false
     @AppStorage("groupByProject") private var groupByProject = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var filtered: [Item] {
         store.vault.items
@@ -33,7 +34,7 @@ struct ContentView: View {
         NavigationSplitView {
             Sidebar(selection: $sidebar)
         } content: {
-            ItemList(items: filtered, groupByProject: groupByProject, selection: $selection)
+            ItemList(items: filtered, groupByProject: groupByProject && !showsOneProject, selection: $selection)
                 .searchable(text: $search, placement: .sidebar, prompt: "Search")
                 .navigationTitle(title)
         } detail: {
@@ -47,8 +48,9 @@ struct ContentView: View {
         }
         .toolbar {
             ToolbarItem {
-                Toggle("Group by Project", systemImage: "square.stack.3d.up", isOn: $groupByProject.animation(Motion.standard))
+                Toggle("Group by Project", systemImage: "square.stack.3d.up", isOn: $groupByProject.animation(reduceMotion ? nil : Motion.standard))
                     .help("Group by Project")
+                    .disabled(showsOneProject)
             }
             ToolbarItem {
                 Button("New Item", systemImage: "plus") { newItem() }
@@ -78,6 +80,11 @@ struct ContentView: View {
             }
         }
         .animation(Motion.standard, value: dropTargeted)
+    }
+
+    /// Grouping a single project's items would only repeat the title.
+    private var showsOneProject: Bool {
+        if case .project = sidebar { true } else { false }
     }
 
     private var title: String {
@@ -136,7 +143,7 @@ private struct Sidebar: View {
             if !store.vault.projects.isEmpty {
                 Section("Projects") {
                     ForEach(store.vault.projects, id: \.self) { project in
-                        row(project, symbol: "folder", tint: .secondary,
+                        row(project, symbol: "square.stack.3d.up", tint: .secondary,
                             count: store.vault.items.count { $0.project == project })
                             .tag(SidebarSelection.project(project))
                     }
@@ -146,7 +153,7 @@ private struct Sidebar: View {
             if !store.vault.folders.isEmpty {
                 Section("Folders") {
                     ForEach(store.vault.folders, id: \.self) { folder in
-                        row(folder, symbol: "folder.fill", tint: .accentColor,
+                        row(folder, symbol: "folder", tint: .secondary,
                             count: store.vault.items.count { $0.folder == folder })
                             .tag(SidebarSelection.folder(folder))
                     }

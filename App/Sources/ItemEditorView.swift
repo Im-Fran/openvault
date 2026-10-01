@@ -71,6 +71,8 @@ struct ItemEditorView: View {
                                 Text($0).textInputCompletion($0)
                             }
                         }
+                } footer: {
+                    Text("A project is what a repository loads. A folder is your own grouping across projects (e.g. Stripe, CI); a .ovaultrc can load a whole folder.")
                 }
 
                 Section {

@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var changingPassword = false
     @State private var cliInstalled = CLIInstaller.isInstalled
     @State private var cliError: String?
+    @State private var confirmReplace = false
 
     var body: some View {
         Form {
@@ -51,13 +52,24 @@ struct SettingsView: View {
                 }
                 LabeledContent("Command-Line Tool") {
                     if cliInstalled {
-                        Label("Installed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                        Label {
+                            Text("Installed")
+                        } icon: {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                        }
                     } else {
-                        Button("Install…") { installCLI() }
+                        Button("Install…") {
+                            if CLIInstaller.hasConflict { confirmReplace = true } else { installCLI() }
+                        }
                     }
                 }
                 if let cliError {
-                    Text(cliError).font(.caption).foregroundStyle(.red)
+                    Label {
+                        Text(cliError)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+                    }
+                    .font(.callout)
                 }
             } header: {
                 Text("CLI")
@@ -73,6 +85,12 @@ struct SettingsView: View {
             cliInstalled = CLIInstaller.isInstalled
         }
         .sheet(isPresented: $changingPassword) { ChangePasswordView() }
+        .confirmationDialog("Replace the Existing “ovault”?", isPresented: $confirmReplace) {
+            Button("Replace", role: .destructive) { installCLI() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("\(CLIInstaller.linkPath) already exists and isn’t OpenVault’s. Replacing it removes it.")
+        }
     }
 
     private func installCLI() {
@@ -81,6 +99,7 @@ struct SettingsView: View {
             cliError = nil
         } catch {
             cliError = error.localizedDescription
+            AccessibilityNotification.Announcement(error.localizedDescription).post()
         }
         cliInstalled = CLIInstaller.isInstalled
     }
@@ -95,6 +114,11 @@ enum CLIInstaller {
         guard let bundled else { return false }
         let target = try? FileManager.default.destinationOfSymbolicLink(atPath: linkPath)
         return target == bundled.path
+    }
+
+    /// Something else is already at `linkPath` (e.g. a Homebrew or hand-built ovault): installing would remove it.
+    static var hasConflict: Bool {
+        (try? FileManager.default.attributesOfItem(atPath: linkPath)) != nil && !isInstalled
     }
 
     static func install() throws {
@@ -117,7 +141,7 @@ enum CLIInstaller {
             var info: NSDictionary?
             NSAppleScript(source: "do shell script \"\(literal)\" with administrator privileges")?.executeAndReturnError(&info)
             if let info, info[NSAppleScript.errorNumber] as? Int != -128 { // -128: the user cancelled
-                throw CLIError(info[NSAppleScript.errorMessage] as? String ?? String(localized: "Couldn’t install the CLI."))
+                throw CLIError(String(localized: "Couldn’t link the CLI into \(linkPath). In Terminal, run: sudo ln -sfn \(Shell.quote(bundled.path)) \(linkPath)"))
             }
         }
     }

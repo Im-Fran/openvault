@@ -8,6 +8,7 @@ struct OpenVaultApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @State private var store = VaultStore()
     @AppStorage("menuBarIcon") private var menuBarIcon = false
+    @AppStorage("groupByProject") private var groupByProject = false
     @State private var updater = Updater(repo: "Im-Fran/openvault", publicKey: "2gpjUv7A+kW83D8XgmvznGoNPLNZRfoLNjDSIohJioM=")
 
     init() {
@@ -33,6 +34,9 @@ struct OpenVaultApp: App {
                 }
                 .keyboardShortcut("n")
                 .disabled(store.state != .unlocked)
+            }
+            CommandGroup(before: .toolbar) {
+                Toggle("Group by Project", isOn: $groupByProject)
             }
             CommandMenu("Vault") {
                 Button("Lock") { store.lock() }

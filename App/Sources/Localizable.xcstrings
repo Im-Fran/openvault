@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ already exists and isn’t OpenVault’s. Replacing it removes it.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ya existe y no es de OpenVault. Reemplazarlo lo elimina."
+          }
+        }
+      }
+    },
     "%lld seconds": {
       "localizations": {
         "en": {
@@ -147,6 +157,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "5 minutos"
+          }
+        }
+      }
+    },
+    "A project is what a repository loads. A folder is your own grouping across projects (e.g. Stripe, CI); a .ovaultrc can load a whole folder.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un proyecto es lo que carga un repositorio. Una carpeta es tu propia agrupación entre proyectos (p. ej., Stripe, CI); un .ovaultrc puede cargar una carpeta completa."
           }
         }
       }
@@ -394,13 +414,13 @@
         }
       }
     },
-    "Couldn’t install the CLI.": {
+    "Couldn’t link the CLI into %@. In Terminal, run: sudo ln -sfn %@ %@": {
       "extractionState": "manual",
       "localizations": {
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo instalar la CLI."
+            "value": "No se pudo enlazar la CLI en %@. En Terminal, ejecuta: sudo ln -sfn %@ %@"
           }
         }
       }
@@ -685,6 +705,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sin proyecto"
+          }
+        }
+      }
+    },
+    "Replace": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reemplazar"
+          }
+        }
+      }
+    },
+    "Replace the Existing “ovault”?": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Reemplazar el «ovault» existente?"
           }
         }
       }
@@ -1721,13 +1761,13 @@
         }
       }
     },
-    "“%@” has an invalid pattern “%@”.": {
+    "“%@” has an invalid pattern “%@”. Use an exact name or a regex; {1..12} matches a number range.": {
       "extractionState": "manual",
       "localizations": {
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "«%@» tiene un patrón inválido «%@»."
+            "value": "«%@» tiene un patrón inválido «%@». Usa un nombre exacto o una regex; {1..12} coincide con un rango de números."
           }
         }
       }

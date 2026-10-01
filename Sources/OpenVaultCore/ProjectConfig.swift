@@ -12,7 +12,7 @@ public enum ProjectConfigError: LocalizedError, Equatable {
         case .unknownKey(let key, let path):
             String(localized: "“\(path)” has an unknown key “\(key)”. Use project-name, secret-name or folder-name.")
         case .invalidPattern(let pattern, let path):
-            String(localized: "“\(path)” has an invalid pattern “\(pattern)”.")
+            String(localized: "“\(path)” has an invalid pattern “\(pattern)”. Use an exact name or a regex; {1..12} matches a number range.")
         }
     }
 }
