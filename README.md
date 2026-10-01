@@ -5,7 +5,7 @@
   <img src="assets/brand/svg/lockup-light.svg" width="480" alt="OpenVault">
 </picture>
 
-**Gestor de secretos para desarrolladores en macOS: `.env`, API keys, claves SSH y GPG en un vault cifrado, con un CLI para usarlos en tus proyectos.**
+**A secrets manager for developers on macOS: `.env` files, API keys, SSH and GPG keys in an encrypted vault, with a CLI to use them in your projects.**
 
 [![License](https://img.shields.io/github/license/Im-Fran/openvault)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/Im-Fran/openvault/ci.yml?branch=dev&label=CI)](https://github.com/Im-Fran/openvault/actions)
@@ -14,222 +14,229 @@
 
 </div>
 
----
+<div align="center">
 
-## 📖 Descripción
+**English** · [Español](README.es.md)
 
-Los secretos de desarrollo suelen terminar repartidos en archivos `.env` sin cifrar, notas y carpetas `~/.ssh` de varias máquinas. OpenVault los guarda en **un solo vault cifrado** protegido por una contraseña maestra (y Touch ID), junto con las passphrases que necesitas para usar cada clave.
-
-Tiene dos piezas que comparten el mismo núcleo (`OpenVaultCore`):
-
-- **OpenVault.app** — app nativa en SwiftUI para crear, ver y organizar secretos por tipo y proyecto.
-- **`ovault`** — CLI que se agrega a cualquier repositorio para inyectar los secretos del proyecto como variables de entorno, sin que el `.env` exista en disco.
-
-Ambos leen el mismo archivo directamente, así que el CLI funciona aunque la app esté cerrada, y la app refleja al instante lo que escribe el CLI.
+</div>
 
 ---
 
-## ✨ Funcionalidades
+## 📖 Overview
 
-- **Vault cifrado** — AES-256-GCM con clave derivada por PBKDF2-SHA256 (600.000 iteraciones). Nada se guarda en texto plano.
-- **Touch ID** — desbloqueo con la clave guardada en el Keychain protegido por biometría.
-- **Tipos de item** — archivos `.env`, secretos individuales, contraseñas (usuario, contraseña, URL), claves SSH, claves GPG, archivos arbitrarios (`.p12`, `.p8`, JSON… cifrados byte a byte y exportables de vuelta a disco) y otros.
-- **Proyectos** — agrupa items por proyecto; el CLI resuelve el proyecto desde un archivo `.openvault` en el repo.
-- **`ovault run`** — ejecuta cualquier comando con los secretos del proyecto como variables de entorno.
-- **Claves SSH** — genera claves ed25519, muestra clave pública y fingerprint, y exporta a `~/.ssh`.
-- **Claves GPG** — muestra fingerprint e identidad sin importar la clave a tu keyring.
-- **Arrastrar y soltar** — suelta un `.env`, `id_*` o `.asc` en la ventana y detecta el tipo.
-- **Valores ocultos** — se revelan con el botón del ojo o manteniendo ⌥.
-- **Portapapeles seguro** — lo copiado se marca como oculto para gestores de portapapeles y se borra solo.
-- **Auto-bloqueo** — por inactividad, al dormir el Mac y al bloquear la pantalla.
+Development secrets tend to end up scattered across unencrypted `.env` files, notes, and `~/.ssh` folders on several machines. OpenVault keeps them in **a single encrypted vault** protected by a master password (and Touch ID), along with the passphrases you need to use each key.
+
+It has two parts that share the same core (`OpenVaultCore`):
+
+- **OpenVault.app** — a native SwiftUI app to create, view, and organize secrets by type and project.
+- **`ovault`** — a CLI you add to any repository to inject the project's secrets as environment variables, without the `.env` ever existing on disk.
+
+Both read the same file directly, so the CLI works even when the app is closed, and the app instantly reflects whatever the CLI writes.
+
+---
+
+## ✨ Features
+
+- **Encrypted vault** — AES-256-GCM with a key derived via PBKDF2-SHA256 (600,000 iterations). Nothing is stored in plain text.
+- **Touch ID** — unlock with the key stored in a biometry-protected Keychain item.
+- **Item types** — `.env` files, individual secrets, passwords (username, password, URL), SSH keys, GPG keys, arbitrary files (`.p12`, `.p8`, JSON… encrypted byte for byte and exportable back to disk), and others.
+- **Projects** — group items by project; the CLI resolves the project from a `.openvault` file in the repo.
+- **`ovault run`** — run any command with the project's secrets as environment variables.
+- **SSH keys** — generate ed25519 keys, view the public key and fingerprint, and export to `~/.ssh`.
+- **GPG keys** — view the fingerprint and identity without importing the key into your keyring.
+- **Drag and drop** — drop a `.env`, `id_*`, or `.asc` file onto the window and its type is detected.
+- **Hidden values** — revealed with the eye button or by holding ⌥.
+- **Secure clipboard** — copied values are marked as concealed for clipboard managers and cleared automatically.
+- **Auto-lock** — after inactivity, when the Mac sleeps, and when the screen locks.
+- **Languages** — available in English and Spanish (Latin America).
 
 ---
 
 ## 🛠 Stack
 
-| Capa | Tecnología |
+| Layer | Technology |
 |------|-----------|
 | App | SwiftUI (macOS 26+) |
 | CLI | Swift + [swift-argument-parser](https://github.com/apple/swift-argument-parser) |
-| Criptografía | CryptoKit (AES-GCM), CommonCrypto (PBKDF2) |
-| Biometría | LocalAuthentication + Keychain |
-| Proyecto Xcode | [XcodeGen](https://github.com/yonaskolb/XcodeGen) |
+| Cryptography | CryptoKit (AES-GCM), CommonCrypto (PBKDF2) |
+| Biometrics | LocalAuthentication + Keychain |
+| Xcode project | [XcodeGen](https://github.com/yonaskolb/XcodeGen) |
 | CI | GitHub Actions (macOS 26) |
 
 ---
 
-## 📋 Requisitos
+## 📋 Requirements
 
-- **macOS 26** o superior
-- **Xcode 26** o superior (Swift 6.2+)
+- **macOS 26** or later
+- **Xcode 26** or later (Swift 6.2+)
 - **XcodeGen** — `brew install xcodegen`
-- Opcional: **gpg** (para ver fingerprints GPG), `ssh-keygen` viene con macOS
+- Optional: **gpg** (to view GPG fingerprints); `ssh-keygen` ships with macOS
 
 ---
 
-## 🚀 Primeros pasos
+## 🚀 Getting started
 
-### 1. Clonar
+### 1. Clone
 
 ```bash
 git clone https://github.com/Im-Fran/openvault.git
 cd openvault
 ```
 
-### 2. Compilar y abrir la app
+### 2. Build and open the app
 
 ```bash
 make open
 ```
 
-La primera vez te pide crear la contraseña maestra. **No se puede recuperar si la olvidas.**
+On first launch it asks you to create a master password. **It cannot be recovered if you forget it.**
 
-> Touch ID requiere que la app esté firmada. Cambia `DEVELOPMENT_TEAM` en `App/project.yml` por tu Team ID si compilas con otra cuenta; sin firma, el botón de Touch ID no aparece.
+> Touch ID requires the app to be signed. Change `DEVELOPMENT_TEAM` in `App/project.yml` to your Team ID if you build with a different account; without signing, the Touch ID button doesn't appear.
 
-### 3. Instalar el CLI
+### 3. Install the CLI
 
 ```bash
-make install-cli    # instala ovault en ~/.local/bin
+make install-cli    # installs ovault into ~/.local/bin
 ```
 
-Asegúrate de tener `~/.local/bin` en tu `PATH`, o usa `make install-cli PREFIX=/usr/local`.
+Make sure `~/.local/bin` is on your `PATH`, or use `make install-cli PREFIX=/usr/local`.
 
 ---
 
-## 💻 Uso del CLI
+## 💻 CLI usage
 
 ```bash
-cd mi-proyecto
-ovault init                        # crea .openvault con el nombre del proyecto (se puede commitear)
-ovault import .env                 # importa un .env al proyecto
-echo "sk_live_..." | ovault set STRIPE_KEY   # sin VALUE lo lee de stdin (no queda en el historial)
-ovault run -- npm run dev          # ejecuta con los secretos como variables de entorno
-ovault load mi-proyecto -- npm run dev   # igual, nombrando el proyecto; incluye contraseñas y archivos
-eval "$(ovault load mi-proyecto)"  # carga las variables en el shell actual
-ovault get STRIPE_KEY              # imprime un valor
-ovault get deploy_key --passphrase # imprime la passphrase de un item
-ovault get cert.p12 > cert.p12     # un item de tipo archivo sale en crudo (binario)
-ovault export --format json        # entorno combinado (env | json)
-ovault list                        # items del proyecto, sin valores (-a para todos)
+cd my-project
+ovault init                        # creates .openvault with the project name (safe to commit)
+ovault import .env                 # imports a .env into the project
+echo "sk_live_..." | ovault set STRIPE_KEY   # without VALUE it reads stdin (stays out of shell history)
+ovault run -- npm run dev          # runs with the secrets as environment variables
+ovault load my-project -- npm run dev    # same, naming the project; includes passwords and files
+eval "$(ovault load my-project)"   # loads the variables into the current shell
+ovault get STRIPE_KEY              # prints a value
+ovault get deploy_key --passphrase # prints an item's passphrase
+ovault get cert.p12 > cert.p12     # a file item is written raw (binary)
+ovault export --format json        # combined environment (env | json)
+ovault list                        # project items, without values (-a for all)
 ```
 
-El proyecto también se puede declarar a mano en un archivo `.ovault` (texto plano, admite comentarios con `#`; solo nombra el proyecto, nunca contiene secretos):
+The project can also be declared by hand in a `.ovault` file (plain text, supports `#` comments; it only names the project and never contains secrets):
 
 ```ini
-project-name=mi-proyecto
+project-name=my-project
 ```
 
-Con él, `ovault load -- npm run dev` y `eval "$(ovault load)"` no necesitan el nombre. Se busca en el directorio actual y hacia arriba; si en un mismo directorio hay `.ovault` y `.openvault`, gana `.ovault`.
+With it, `ovault load -- npm run dev` and `eval "$(ovault load)"` don't need the name. It is looked up in the current directory and upwards; if a directory contains both `.ovault` and `.openvault`, `.ovault` wins.
 
-#### Carga automática (opcional)
+#### Automatic loading (optional)
 
 ```bash
-eval "$(ovault hook zsh)"   # en ~/.zshrc (o `ovault hook bash` en ~/.bashrc)
+eval "$(ovault hook zsh)"   # in ~/.zshrc (or `ovault hook bash` in ~/.bashrc)
 ```
 
-Al entrar a un directorio con `.ovault` (o a un subdirectorio) el hook carga las variables del proyecto, y al salir las quita y borra los archivos temporales. Nunca pide la contraseña maestra: carga únicamente si `OPENVAULT_PASSWORD` está definida; con el vault bloqueado avisa una vez y basta con ejecutar `eval "$(ovault load)"` para desbloquear y cargar. Ojo: un repositorio ajeno con un `.ovault` que nombre uno de tus proyectos recibiría ese entorno al entrar; el hook avisa cada vez que carga.
+When you enter a directory with a `.ovault` (or one of its subdirectories), the hook loads the project's variables; when you leave, it unsets them and deletes the temporary files. It never prompts for the master password: it only loads if `OPENVAULT_PASSWORD` is set; with the vault locked it warns once, and running `eval "$(ovault load)"` is enough to unlock and load. Note: a third-party repository with a `.ovault` that names one of your projects would receive that environment when you enter it; the hook warns every time it loads.
 
-Todos los comandos aceptan `--project <nombre>` para no depender del `.ovault`/`.openvault`. Si un secreto individual y una variable de un `.env` tienen el mismo nombre, gana el secreto individual.
+Every command accepts `--project <name>` so it doesn't depend on `.ovault`/`.openvault`. If an individual secret and a variable from a `.env` share the same name, the individual secret wins.
 
-`ovault load` también expone las **contraseñas** (`NOMBRE` y `NOMBRE_USERNAME`; un nombre como «Postgres prod» se convierte en `POSTGRES_PROD`) y los **archivos**: los escribe en un directorio temporal privado (`0700`, archivo `0600`) y exporta su ruta (`AuthKey_AB12.p8` → `AUTHKEY_AB12_P8`). Con `-- comando` los borra al terminar. Las claves SSH/GPG y los items «otros» no se cargan. Detalle en `ovault load --help`.
+`ovault load` also exposes **passwords** (`NAME` and `NAME_USERNAME`; a name like "Postgres prod" becomes `POSTGRES_PROD`) and **files**: it writes them to a private temporary directory (`0700`, files `0600`) and exports their path (`AuthKey_AB12.p8` → `AUTHKEY_AB12_P8`). With `-- command` it deletes them when the command exits. SSH/GPG keys and "other" items are not loaded. Details in `ovault load --help`.
 
-### Variables de entorno
+### Environment variables
 
-| Variable | Descripción |
+| Variable | Description |
 |----------|-------------|
-| `OPENVAULT_PASSWORD` | Contraseña maestra sin prompt (útil en CI). Se elimina del entorno antes de `ovault run`. |
-| `OPENVAULT_FILE` | Ruta alternativa al archivo del vault (app y CLI). |
+| `OPENVAULT_PASSWORD` | Master password without a prompt (useful in CI). Removed from the environment before `ovault run`. |
+| `OPENVAULT_FILE` | Alternative path to the vault file (app and CLI). |
 
 ---
 
-## ⚙️ Configuración de la app
+## ⚙️ App settings
 
-En **OpenVault → Ajustes** (⌘,):
+In **OpenVault → Settings** (⌘,):
 
-| Opción | Por defecto | Descripción |
+| Option | Default | Description |
 |--------|-------------|-------------|
-| Bloquear tras inactividad | 5 minutos | 1, 5, 15, 60 minutos o nunca |
-| Limpiar portapapeles tras | 30 segundos | 15, 30, 60 o 90 segundos |
-| Desbloquear con Touch ID | Activado | Requiere app firmada y Touch ID disponible |
-| Cambiar contraseña maestra | — | Re-cifra todo el vault con un salt nuevo |
+| Lock After Inactivity | 5 minutes | 1, 5, 15, 60 minutes, or never |
+| Clear Clipboard After | 30 seconds | 15, 30, 60, or 90 seconds |
+| Unlock with Touch ID | On | Requires a signed app and available Touch ID |
+| Change Master Password | — | Re-encrypts the whole vault with a new salt |
 
-Atajos: ⌘N nuevo item, ⌘L bloquear, ⌫ eliminar item seleccionado.
+Shortcuts: ⌘N new item, ⌘L lock, ⌫ delete selected item.
 
 ---
 
-## 🧪 Desarrollo
+## 🧪 Development
 
 ```bash
-make test       # tests del núcleo (swift test)
-make cli        # compila ovault en release
-make project    # genera App/OpenVault.xcodeproj
-make app        # compila OpenVault.app en build/
-make clean      # borra artefactos de build y el proyecto generado
+make test       # core tests (swift test)
+make cli        # builds ovault in release
+make project    # generates App/OpenVault.xcodeproj
+make app        # builds OpenVault.app into build/
+make clean      # removes build artifacts and the generated project
 ```
 
-La firma, el DMG y la notarización van con [fastlane](fastlane/Fastfile) (`make dmg` para un DMG local de prueba). Las releases se publican al subir un tag `v*`; ver [.github/RELEASING.md](.github/RELEASING.md).
+Signing, the DMG, and notarization are handled by [fastlane](fastlane/Fastfile) (`make dmg` for a local test DMG). Releases are published by pushing a `v*` tag; see [.github/RELEASING.md](.github/RELEASING.md).
 
-Estructura:
+Layout:
 
 ```
-Sources/OpenVaultCore/   cifrado, formato del vault, parser .env, .openvault
+Sources/OpenVaultCore/   encryption, vault format, .env parser, .openvault
 Sources/ovault/          CLI
-Tests/                   tests del núcleo
-App/                     app SwiftUI (project.yml + Sources/)
-assets/                  branding: ícono, logotipos, paleta (ver assets/README.md)
+Tests/                   core tests
+App/                     SwiftUI app (project.yml + Sources/)
+assets/                  branding: icon, logos, palette (see assets/README.md)
 ```
 
-### Grafo de conocimiento (graphify)
+### Knowledge graph (graphify)
 
-[graphify](https://github.com/safishamsi/graphify) convierte el repo (código, docs e imágenes) en un grafo de conocimiento: extrae símbolos y relaciones, detecta comunidades y marca cada relación como `EXTRACTED`, `INFERRED` o `AMBIGUOUS`. Lo usamos para orientarnos en el código, y para que los agentes de IA consulten el grafo en vez de releer todo el repo.
+[graphify](https://github.com/safishamsi/graphify) turns the repo (code, docs, and images) into a knowledge graph: it extracts symbols and relationships, detects communities, and tags each relationship as `EXTRACTED`, `INFERRED`, or `AMBIGUOUS`. We use it to find our way around the code, and so AI agents can query the graph instead of rereading the whole repo.
 
-El resultado vive en `graphify-out/`, que no se versiona: cada persona lo genera localmente.
+The output lives in `graphify-out/`, which isn't versioned: everyone generates it locally.
 
-| Archivo | Qué es |
+| File | What it is |
 |---|---|
-| `GRAPH_REPORT.md` | Resumen: nodos más conectados, comunidades, conexiones inesperadas |
-| `graph.html` | Grafo interactivo, se abre en el navegador sin servidor |
-| `graph.json` | Datos crudos del grafo, para consultas |
+| `GRAPH_REPORT.md` | Summary: most connected nodes, communities, surprising connections |
+| `graph.html` | Interactive graph, opens in the browser without a server |
+| `graph.json` | Raw graph data, for queries |
 
-Se genera y consulta desde [Claude Code](https://claude.com/claude-code) con el skill `/graphify`:
+It is generated and queried from [Claude Code](https://claude.com/claude-code) with the `/graphify` skill:
 
 ```bash
-/graphify .                              # reconstruye el grafo completo
-/graphify . --update                     # re-extrae solo los archivos que cambiaron
-/graphify query "¿cómo se cifra el vault?"
+/graphify .                              # rebuilds the full graph
+/graphify . --update                     # re-extracts only the files that changed
+/graphify query "how is the vault encrypted?"
 /graphify path "VaultStore" "VaultCrypto"
 /graphify explain "VaultKey"
 ```
 
-La primera vez corre `/graphify .`; después, `/graphify . --update` mantiene tu grafo al día.
+Run `/graphify .` the first time; after that, `/graphify . --update` keeps your graph up to date.
 
 ---
 
-## 🔒 Seguridad
+## 🔒 Security
 
-- Vault en `~/Library/Application Support/OpenVault/vault.ovault`, con permisos `0600` (carpeta `0700`).
-- La app y el CLI escriben con un lock exclusivo y releen la última versión antes de modificar, así no se pisan.
-- Al bloquear, la clave se descarta de memoria.
+- The vault lives at `~/Library/Application Support/OpenVault/vault.ovault`, with `0600` permissions (folder `0700`).
+- The app and the CLI write under an exclusive lock and reread the latest version before modifying, so they don't overwrite each other.
+- When locking, the key is discarded from memory.
 
-¿Encontraste una vulnerabilidad? No abras un issue público: lee la [política de seguridad](SECURITY.md) y repórtala en privado.
-
----
-
-## 🤝 Contribuir
-
-1. Haz un fork del repo
-2. Crea una rama desde `dev`: `git checkout -b feat/mi-cambio`
-3. Commit con [Conventional Commits](https://www.conventionalcommits.org): `git commit -m "feat: agrega mi cambio"`
-4. Asegúrate de que `make test` y `make app` pasen, y abre un PR hacia `dev`
+Found a vulnerability? Don't open a public issue: read the [security policy](SECURITY.md) and report it privately.
 
 ---
 
-## 📄 Licencia
+## 🤝 Contributing
 
-OpenVault es software libre bajo la **GNU General Public License v3.0** — ver [LICENSE](LICENSE).
+1. Fork the repo
+2. Create a branch from `dev`: `git checkout -b feat/my-change`
+3. Commit using [Conventional Commits](https://www.conventionalcommits.org): `git commit -m "feat: add my change"`
+4. Make sure `make test` and `make app` pass, and open a PR against `dev`
+
+---
+
+## 📄 License
+
+OpenVault is free software under the **GNU General Public License v3.0** — see [LICENSE](LICENSE).
 
 ---
 
 <div align="center">
-Hecho con ☕ por <a href="https://franciscosolis.cl">Fran</a>
+Made with ☕ by <a href="https://franciscosolis.cl">Fran</a>
 </div>

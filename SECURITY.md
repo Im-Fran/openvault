@@ -1,25 +1,27 @@
-# Política de seguridad
+# Security Policy
 
-OpenVault guarda secretos, así que nos tomamos en serio cualquier vulnerabilidad.
+**English** · [Español](SECURITY.es.md)
 
-## Reportar una vulnerabilidad
+OpenVault stores secrets, so we take any vulnerability seriously.
 
-**No abras un issue público.** Repórtala en privado desde
+## Reporting a vulnerability
+
+**Do not open a public issue.** Report it privately via
 [Security → Report a vulnerability](https://github.com/Im-Fran/openvault/security/advisories/new).
 
-Incluye, si puedes:
-- Versión o commit afectado.
-- Pasos para reproducirla y el impacto (p. ej. lectura de secretos sin la contraseña maestra).
-- Una prueba de concepto mínima.
+If you can, include:
+- The affected version or commit.
+- Steps to reproduce it and the impact (e.g. reading secrets without the master password).
+- A minimal proof of concept.
 
-Responderemos en un plazo de 7 días y te mantendremos al tanto hasta publicar el fix. Con gusto te daremos crédito en el advisory si lo deseas.
+We will respond within 7 days and keep you updated until the fix is released. We're happy to credit you in the advisory if you wish.
 
-## Versiones soportadas
+## Supported versions
 
-Solo la última versión de la rama `dev` recibe correcciones de seguridad.
+Only the latest version of the `dev` branch receives security fixes.
 
-## Alcance
+## Scope
 
-Dentro del alcance: el cifrado y formato del vault, la app macOS, el CLI `ovault` y el manejo de claves (Keychain, portapapeles, archivos temporales).
+In scope: vault encryption and format, the macOS app, the `ovault` CLI, and key handling (Keychain, clipboard, temporary files).
 
-Fuera del alcance: ataques que requieren que el Mac ya esté comprometido con privilegios del usuario mientras el vault está desbloqueado.
+Out of scope: attacks that require the Mac to already be compromised with the user's privileges while the vault is unlocked.
