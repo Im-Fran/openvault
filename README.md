@@ -48,6 +48,7 @@ Both read the same file directly, so the CLI works even when the app is closed, 
 - **Hidden values** — revealed with the eye button or by holding ⌥.
 - **Secure clipboard** — copied values are marked as concealed for clipboard managers and cleared automatically.
 - **Auto-lock** — after inactivity, when the Mac sleeps, and when the screen locks.
+- **Automatic updates** — checks GitHub Releases and installs signed updates in place (Settings → Updates, or OpenVault → Check for Updates…).
 - **Languages** — available in English and Spanish (Latin America).
 
 ---

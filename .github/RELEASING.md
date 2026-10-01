@@ -5,15 +5,18 @@
 Signing, building, notarization and the DMG are handled by **fastlane** (`fastlane/Fastfile`). The [`release.yml`](workflows/release.yml) workflow runs the `release` lane on every tag and publishes to GitHub Releases:
 
 - `OpenVault-<version>.dmg` — the notarized app with its ticket *stapled*, inside a DMG that is also notarized.
-- `ovault-<version>-macos-universal.zip` — the CLI (arm64 + x86_64), signed and notarized.
-- `checksums.txt` — SHA-256 of both.
+- `OpenVault-<version>.zip` + `.zip.sig` — the same stapled app for in-app updates ([OpenUpdater](https://github.com/Im-Fran/openupdater)), with its Ed25519 signature.
+- `ovault-<version>-macos-universal.tar.gz` — the CLI (arm64 + x86_64), signed and notarized. It's a tarball on purpose: OpenUpdater takes the first `.zip` in a release as the app update, so a release must have **exactly one** `.zip`.
+- `checksums.txt` — SHA-256 of the DMG, the zip and the tarball.
 
 ```sh
-git tag v0.1.0        # or v0.1.0+7 to pin the build number
+git tag v0.1.0        # v0.2.0-beta.1 is published as a pre-release
 git push origin v0.1.0
 ```
 
-The tag version is used as the app's `MARKETING_VERSION` and as `ovault --version`.
+The tag version is used as the app's `MARKETING_VERSION` and as `ovault --version`, and the build number is the workflow run number. The tag must be **exactly** the version (no `+build` suffix): OpenUpdater compares it with the installed app's version, and a mismatch means updates are never offered or offered in a loop.
+
+Never change the bundle ID (`cl.franciscosolis.openvault`) or the Team ID: existing installs would reject the update as "not signed by the same developer".
 
 ## Lanes
 
@@ -65,6 +68,7 @@ bundle exec fastlane certificates readonly:false   # creates OpenVault's Develop
 | `MATCH_REPOSITORY_URL` | match repo URL (HTTPS) |
 | `MATCH_PASSWORD` | match repo passphrase |
 | `MATCH_GIT_BASIC_AUTHORIZATION` | `user:token` base64-encoded, with a read-only token for the match repo |
+| `OPENUPDATER_PRIVATE_KEY` | OpenUpdater's Ed25519 private key (signs `OpenVault-<version>.zip`) |
 
 ```sh
 gh secret set ASC_KEY_ID
@@ -73,7 +77,10 @@ gh secret set ASC_KEY_CONTENT < <(base64 -i ~/.appstoreconnect/private_keys/Auth
 gh secret set MATCH_REPOSITORY_URL
 gh secret set MATCH_PASSWORD
 gh secret set MATCH_GIT_BASIC_AUTHORIZATION < <(printf 'user:ghp_xxx' | base64)
+security find-generic-password -s openupdater-openvault -w | gh secret set OPENUPDATER_PRIVATE_KEY
 ```
+
+The OpenUpdater private key lives in the login keychain (service `openupdater-openvault`), where the `release` lane reads it locally, and in your password manager. Never commit it. Its public key is in `App/Sources/OpenVaultApp.swift`; if you ever rotate the pair, versions shipped with the old public key can no longer update automatically.
 
 In CI, match runs in read-only mode: the profile must already exist (step 3).
 

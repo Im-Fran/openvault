@@ -114,15 +114,21 @@ platform :mac do
     notarize(package: app, api_key: key, print_log: true)
     dmg = package_dmg(app)
     notarize(package: dmg, api_key: key, print_log: true)
+    version = app_version(app)
+    package_update(app, version)
 
     # A bare binary can't be stapled; Gatekeeper checks its ticket online.
-    version = app_version(app)
-    cli_zip = File.join(ROOT, DIST_DIR, "ovault-#{version}-macos-universal.zip")
-    sh("ditto", "-c", "-k", build_cli(version, signed: true), cli_zip)
-    notarize(package: cli_zip, api_key: key, skip_stapling: true, print_log: true)
+    # notarytool only takes a zip, but the release ships a tarball: OpenUpdater
+    # treats the first .zip asset as the app update.
+    cli = build_cli(version, signed: true)
+    notarize_zip = File.join(ROOT, BUILD_DIR, "ovault-notarize.zip")
+    sh("ditto", "-c", "-k", cli, notarize_zip)
+    notarize(package: notarize_zip, api_key: key, skip_stapling: true, print_log: true)
+    sh("tar", "-czf", File.join(ROOT, DIST_DIR, "ovault-#{version}-macos-universal.tar.gz"),
+       "-C", File.dirname(cli), File.basename(cli))
 
     Dir.chdir(File.join(ROOT, DIST_DIR)) do
-      sh("shasum -a 256 *.dmg *.zip > checksums.txt")
+      sh("shasum -a 256 *.dmg *.zip *.tar.gz > checksums.txt")
     end
     UI.success("Release artifacts in #{DIST_DIR}")
   end
@@ -172,6 +178,30 @@ def package_dmg(app)
 
   sh("codesign", "--sign", "Developer ID Application", "--timestamp", dmg)
   dmg
+end
+
+# OpenUpdater asset: the stapled app at the zip root (ditto keeps the signature
+# intact), plus an Ed25519 signature of that exact zip. The private key comes
+# from OPENUPDATER_PRIVATE_KEY (CI secret) or, locally, the login keychain.
+OPENUPDATER_REVISION = File.read(File.join(ROOT, "App/project.yml"))[/openupdater\n\s*revision:\s*(\h+)/, 1]
+
+def package_update(app, version)
+  if ENV["OPENUPDATER_PRIVATE_KEY"].to_s.empty?
+    key = `security find-generic-password -s openupdater-openvault -w 2>/dev/null`.strip
+    UI.user_error!("no OPENUPDATER_PRIVATE_KEY: the update can't be signed") if key.empty?
+    ENV["OPENUPDATER_PRIVATE_KEY"] = key
+  end
+
+  zip = File.join(ROOT, DIST_DIR, "OpenVault-#{version}.zip")
+  sh("ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", File.expand_path(app, ROOT), zip)
+
+  tool = File.join(ROOT, BUILD_DIR, "openupdater")
+  unless File.exist?(tool)
+    sh("git", "clone", "--quiet", "https://github.com/Im-Fran/openupdater", tool)
+  end
+  sh("git", "-C", tool, "checkout", "--quiet", OPENUPDATER_REVISION)
+  sh("swift", "run", "--package-path", tool, "openupdater-cli", "sign", zip)
+  zip
 end
 
 # Universal binary with the version baked in. Version.swift is restored after,

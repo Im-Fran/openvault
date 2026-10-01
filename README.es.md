@@ -48,6 +48,7 @@ Ambos leen el mismo archivo directamente, así que el CLI funciona aunque la app
 - **Valores ocultos** — se revelan con el botón del ojo o manteniendo ⌥.
 - **Portapapeles seguro** — lo copiado se marca como oculto para gestores de portapapeles y se borra solo.
 - **Auto-bloqueo** — por inactividad, al dormir el Mac y al bloquear la pantalla.
+- **Actualizaciones automáticas** — revisa las releases de GitHub e instala actualizaciones firmadas sin salir de la app (Configuración → Actualizaciones, u OpenVault → Buscar actualizaciones…).
 - **Idiomas** — disponible en inglés y español (Latinoamérica).
 
 ---

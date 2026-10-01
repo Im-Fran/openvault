@@ -4,9 +4,10 @@ name: Release
 # signature from the match repo, notarizes them, packages the DMG and publishes
 # a GitHub Release. Setup and secrets: .github/RELEASING.md.
 #
-# Tag format: <version>[+<build>], with an optional leading "v".
-#   v1.4.0+7  → version 1.4.0, build 7
-#   v1.4.0    → version 1.4.0, build = workflow run number
+# Tag format: <version>, with an optional leading "v" (v1.4.0, v1.5.0-beta.1).
+# The build number is the workflow run number. The tag must be exactly the app
+# version: OpenUpdater compares tags against CFBundleShortVersionString.
+# A tag with "-" (v1.5.0-beta.1) is published as a pre-release.
 on:
   push:
     tags: ["*"]
@@ -35,6 +36,7 @@ jobs:
       MATCH_REPOSITORY_URL: ${{ secrets.MATCH_REPOSITORY_URL }}
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      OPENUPDATER_PRIVATE_KEY: ${{ secrets.OPENUPDATER_PRIVATE_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -50,19 +52,13 @@ jobs:
         run: |
           TAG="$RAW_TAG"
           case "$TAG" in
-            *[!A-Za-z0-9.+_-]*)
+            *[!A-Za-z0-9._-]*)
               echo "Refusing tag with unexpected characters: $TAG" >&2
               exit 1
               ;;
           esac
           VERSION="${TAG#v}"
           BUILD="$GITHUB_RUN_NUMBER"
-          case "$VERSION" in
-            *+*)
-              BUILD="${VERSION##*+}"
-              VERSION="${VERSION%%+*}"
-              ;;
-          esac
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "build=$BUILD" >> "$GITHUB_OUTPUT"
@@ -93,14 +89,26 @@ jobs:
         run: bundle exec fastlane release version:"$VERSION" build_number:"$BUILD"
 
       - name: Verify
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           spctl --assess --type execute --verbose build/OpenVault.app
           spctl --assess --type open --context context:primary-signature --verbose build/dist/*.dmg
           codesign --verify --strict --verbose=2 build/ovault
+          # OpenUpdater: one zip, the app at its root, the tag equal to the app
+          # version, and a signature that matches the key built into the app.
+          test "$(ls build/dist/*.zip | wc -l)" -eq 1
+          test "$(unzip -Z1 "build/dist/OpenVault-$VERSION.zip" | head -1)" = "OpenVault.app/"
+          test "$(plutil -extract CFBundleShortVersionString raw -o - build/OpenVault.app/Contents/Info.plist)" = "$VERSION"
+          PUBLIC_KEY=$(sed -n 's/.*publicKey: "\([^"]*\)".*/\1/p' App/Sources/OpenVaultApp.swift)
+          swift run --package-path build/openupdater openupdater-cli verify "build/dist/OpenVault-$VERSION.zip" "$PUBLIC_KEY"
 
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
           VERSION: ${{ steps.version.outputs.version }}
-        run: gh release create "$TAG" build/dist/* --title "OpenVault $VERSION" --generate-notes --verify-tag
+        run: |
+          PRERELEASE=""
+          case "$VERSION" in *-*) PRERELEASE="--prerelease" ;; esac
+          gh release create "$TAG" build/dist/* --title "OpenVault $VERSION" --generate-notes --verify-tag $PRERELEASE

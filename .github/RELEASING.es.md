@@ -5,15 +5,18 @@
 La firma, compilación, notarización y el DMG los hace **fastlane** (`fastlane/Fastfile`). El workflow [`release.yml`](workflows/release.yml) corre el lane `release` en cada tag y publica en GitHub Releases:
 
 - `OpenVault-<versión>.dmg` — la app notarizada y con el ticket *stapled*, en un DMG también notarizado.
-- `ovault-<versión>-macos-universal.zip` — el CLI (arm64 + x86_64), firmado y notarizado.
-- `checksums.txt` — SHA-256 de ambos.
+- `OpenVault-<versión>.zip` + `.zip.sig` — la misma app con el ticket *stapled*, para las actualizaciones dentro de la app ([OpenUpdater](https://github.com/Im-Fran/openupdater)), con su firma Ed25519.
+- `ovault-<versión>-macos-universal.tar.gz` — el CLI (arm64 + x86_64), firmado y notarizado. Es un tarball a propósito: OpenUpdater toma el primer `.zip` de la release como la actualización de la app, así que cada release debe tener **exactamente un** `.zip`.
+- `checksums.txt` — SHA-256 del DMG, el zip y el tarball.
 
 ```sh
-git tag v0.1.0        # o v0.1.0+7 para fijar el build number
+git tag v0.1.0        # v0.2.0-beta.1 se publica como pre-release
 git push origin v0.1.0
 ```
 
-La versión del tag se usa como `MARKETING_VERSION` de la app y como `ovault --version`.
+La versión del tag se usa como `MARKETING_VERSION` de la app y como `ovault --version`, y el build number es el número de ejecución del workflow. El tag debe ser **exactamente** la versión (sin sufijo `+build`): OpenUpdater lo compara con la versión de la app instalada, y si no coinciden la actualización nunca se ofrece o se ofrece en bucle.
+
+Nunca cambies el bundle ID (`cl.franciscosolis.openvault`) ni el Team ID: las instalaciones existentes rechazarían la actualización por no estar "firmada por el mismo desarrollador".
 
 ## Lanes
 
@@ -65,6 +68,7 @@ bundle exec fastlane certificates readonly:false   # crea el perfil Developer ID
 | `MATCH_REPOSITORY_URL` | URL del repo de match (HTTPS) |
 | `MATCH_PASSWORD` | Passphrase del repo de match |
 | `MATCH_GIT_BASIC_AUTHORIZATION` | `usuario:token` en base64, con un token de solo lectura al repo de match |
+| `OPENUPDATER_PRIVATE_KEY` | Clave privada Ed25519 de OpenUpdater (firma `OpenVault-<versión>.zip`) |
 
 ```sh
 gh secret set ASC_KEY_ID
@@ -73,7 +77,10 @@ gh secret set ASC_KEY_CONTENT < <(base64 -i ~/.appstoreconnect/private_keys/Auth
 gh secret set MATCH_REPOSITORY_URL
 gh secret set MATCH_PASSWORD
 gh secret set MATCH_GIT_BASIC_AUTHORIZATION < <(printf 'usuario:ghp_xxx' | base64)
+security find-generic-password -s openupdater-openvault -w | gh secret set OPENUPDATER_PRIVATE_KEY
 ```
+
+La clave privada de OpenUpdater vive en el llavero de inicio de sesión (servicio `openupdater-openvault`), de donde la lee el lane `release` en local, y en tu gestor de contraseñas. Nunca la commitees. Su clave pública está en `App/Sources/OpenVaultApp.swift`; si alguna vez rotas el par, las versiones publicadas con la clave pública anterior ya no podrán actualizarse solas.
 
 En CI match corre en modo solo lectura: el perfil tiene que existir antes (paso 3).
 
