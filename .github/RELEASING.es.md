@@ -88,6 +88,21 @@ En CI match corre en modo solo lectura: el perfil tiene que existir antes (paso 
 
 La app guarda la clave de Touch ID en el Keychain de *data protection*, que requiere el entitlement `keychain-access-groups` (`App/OpenVault.entitlements`), y en macOS ese entitlement solo es válido con un perfil. Para el grupo del Keychain no hace falta ninguna *capability* extra: los perfiles ya incluyen `PX7HA29NR3.*`. La sincronización con iCloud sí necesita una: el App ID `cl.franciscosolis.openvault` debe tener **iCloud** (CloudKit) activado con el contenedor `iCloud.cl.franciscosolis.openvault` asignado. Después de cambiar las capabilities del App ID, regenera el perfil con `bundle exec fastlane certificates readonly:false force:true`. El lane `release` falla si la app exportada no trae `embedded.provisionprofile`.
 
+## iPhone y iPad (TestFlight)
+
+El Mac se distribuye fuera de la App Store (Developer ID, sin sandbox); la app de iOS va por TestFlight.
+
+1. Una vez: crea la app en App Store Connect → *Apps* → **+** → *Nueva app* (plataforma iOS, bundle ID `cl.franciscosolis.openvault`). La API no puede crear apps.
+2. Sube un build:
+
+   ```bash
+   bundle exec fastlane ios beta readonly:false   # la primera vez: match crea el perfil de App Store
+   bundle exec fastlane ios beta                  # después
+   ```
+
+   Toma el siguiente número de build desde TestFlight. Opciones: `version:` (versión de marketing), `build_number:`.
+3. En App Store Connect → *TestFlight*, responde la pregunta de cumplimiento de exportación del build y agrégate a un grupo interno.
+
 ## DMG
 
 `packaging/dmg-settings.py` define la ventana (640×400, íconos de la app y de Aplicaciones) y `packaging/dmg-background.png` el fondo con la paleta de marca. Para regenerar el fondo:
