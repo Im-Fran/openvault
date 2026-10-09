@@ -16,6 +16,29 @@ nonisolated enum Biometrics {
         LAContext().canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
     }
 
+    private static var type: LABiometryType {
+        let context = LAContext()
+        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) // fills biometryType
+        return context.biometryType
+    }
+
+    /// "Touch ID", "Face ID" or "Optic ID": product names, not translated.
+    static var name: String {
+        switch type {
+        case .faceID: "Face ID"
+        case .opticID: "Optic ID"
+        default: "Touch ID"
+        }
+    }
+
+    static var symbol: String {
+        switch type {
+        case .faceID: "faceid"
+        case .opticID: "opticid"
+        default: "touchid"
+        }
+    }
+
     /// True when an item exists, checked without prompting.
     static var isEnrolled: Bool {
         let context = LAContext()

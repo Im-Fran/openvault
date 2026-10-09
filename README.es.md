@@ -5,11 +5,11 @@
   <img src="assets/brand/svg/lockup-light.svg" width="480" alt="OpenVault">
 </picture>
 
-**Gestor de secretos para desarrolladores en macOS: `.env`, API keys, claves SSH y GPG en un vault cifrado, con un CLI para usarlos en tus proyectos.**
+**Gestor de secretos para desarrolladores en macOS, iPhone y iPad: `.env`, API keys, claves SSH y GPG en un vault cifrado, con un CLI para usarlos en tus proyectos.**
 
 [![License](https://img.shields.io/github/license/Im-Fran/openvault)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/Im-Fran/openvault/ci.yml?branch=dev&label=CI)](https://github.com/Im-Fran/openvault/actions)
-![Platform](https://img.shields.io/badge/platform-macOS%2026%2B-lightgrey)
+![Platform](https://img.shields.io/badge/platform-macOS%2026%2B%20%7C%20iOS%2026%2B-lightgrey)
 ![Swift](https://img.shields.io/badge/Swift-6-orange)
 
 </div>
@@ -38,7 +38,9 @@ Ambos leen el mismo archivo directamente, así que el CLI funciona aunque la app
 ## ✨ Funcionalidades
 
 - **Vault cifrado** — AES-256-GCM con clave derivada por PBKDF2-SHA256 (600.000 iteraciones). Nada se guarda en texto plano.
-- **Touch ID** — desbloqueo con la clave guardada en el Keychain protegido por biometría.
+- **Touch ID / Face ID** — desbloqueo con la clave guardada en el Keychain protegido por biometría.
+- **iPhone y iPad** — la misma app en iOS 26+, con Face ID y bloqueo automático al bloquear el dispositivo o al dejar la app en segundo plano.
+- **Sincronización con iCloud** — opcional (Ajustes → iCloud): el archivo del vault pasa al contenedor de iCloud Drive de la app, cifrado igual con tu contraseña maestra, así todos tus dispositivos ven los mismos ítems. El CLI sigue el ajuste de la app.
 - **Tipos de item** — archivos `.env`, secretos individuales, contraseñas (usuario, contraseña, URL), claves SSH, claves GPG, archivos arbitrarios (`.p12`, `.p8`, JSON… cifrados byte a byte y exportables de vuelta a disco) y otros.
 - **Proyectos y carpetas** — agrupa items por proyecto (opcionalmente como secciones en la lista) y por carpeta; el CLI carga lo que selecciona un archivo `.ovaultrc` en el repo.
 - **`ovault run`** — ejecuta cualquier comando con los secretos del proyecto como variables de entorno.
@@ -154,7 +156,7 @@ Todos los comandos aceptan `--project <nombre>` para no depender del `.ovaultrc`
 | Variable | Descripción |
 |----------|-------------|
 | `OPENVAULT_PASSWORD` | Contraseña maestra sin prompt (útil en CI). Se elimina del entorno antes de `ovault run`. |
-| `OPENVAULT_FILE` | Ruta alternativa al archivo del vault (app y CLI). |
+| `OPENVAULT_FILE` | Ruta alternativa al archivo del vault (app y CLI). Desactiva la sincronización con iCloud. |
 
 ---
 
@@ -167,6 +169,7 @@ En **OpenVault → Configuración** (⌘,):
 | Bloquear tras inactividad | 5 minutos | 1, 5, 15, 60 minutos o nunca |
 | Limpiar portapapeles tras | 30 segundos | 15, 30, 60 o 90 segundos |
 | Desbloquear con Touch ID | Activado | Requiere app firmada y Touch ID disponible |
+| Sincronizar con iCloud | Desactivado | Guarda el vault en iCloud Drive. Si otro dispositivo ya dejó uno ahí, OpenVault pide la contraseña maestra de ese vault y combina ambos |
 | Cambiar contraseña maestra | — | Re-cifra todo el vault con un salt nuevo |
 
 Atajos: ⌘N nuevo item, ⌘L bloquear, ⌫ eliminar item seleccionado.
@@ -226,6 +229,7 @@ La primera vez corre `/graphify .`; después, `/graphify . --update` mantiene tu
 - Vault en `~/Library/Application Support/OpenVault/vault.ovault`, con permisos `0600` (carpeta `0700`).
 - La app y el CLI escriben con un lock exclusivo y releen la última versión antes de modificar, así no se pisan.
 - Al bloquear, la clave se descarta de memoria.
+- Con iCloud activado, el vault vive en el contenedor de iCloud de la app (`~/Library/Mobile Documents/iCloud~cl~franciscosolis~openvault/Documents/`). iCloud solo guarda el archivo cifrado; si dos dispositivos guardan a la vez, OpenVault combina sus ítems (gana la edición más reciente).
 
 ¿Encontraste una vulnerabilidad? No abras un issue público: lee la [política de seguridad](SECURITY.es.md) y repórtala en privado.
 

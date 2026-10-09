@@ -1,3 +1,4 @@
+#if os(macOS)
 import AppKit
 import OpenVaultCore
 import SwiftUI
@@ -202,3 +203,4 @@ private struct MenuBarLockView: View {
         }
     }
 }
+#endif

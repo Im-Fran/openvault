@@ -47,112 +47,30 @@ struct ItemEditorView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Form {
-                Section {
-                    Picker("Kind", selection: $item.kind.animation(Motion.standard)) {
-                        ForEach(Item.Kind.allCases, id: \.self) { kind in
-                            Label(kind.singular, systemImage: kind.symbol).tag(kind)
-                        }
-                    }
-                    TextField("Name", text: $item.name, prompt: Text(namePrompt))
-                    if let nameError {
-                        Text(nameError).font(.caption).foregroundStyle(.red)
-                    }
-                    TextField("Project", text: $project, prompt: Text("Optional"))
-                        .textInputSuggestions {
-                            ForEach(store.vault.projects.filter { project.isEmpty || $0.localizedCaseInsensitiveContains(project) }, id: \.self) {
-                                Text($0).textInputCompletion($0)
-                            }
-                        }
-                    TextField("Folder", text: $folder, prompt: Text("Optional"))
-                        .textInputSuggestions {
-                            ForEach(store.vault.folders.filter { folder.isEmpty || $0.localizedCaseInsensitiveContains(folder) }, id: \.self) {
-                                Text($0).textInputCompletion($0)
-                            }
-                        }
-                } footer: {
-                    Text("A project is what a repository loads. A folder is your own grouping across projects (e.g. Stripe, CI); a .ovaultrc can load a whole folder.")
+        Group {
+            #if os(macOS)
+            VStack(spacing: 0) {
+                form
+                HStack {
+                    Spacer()
+                    cancelButton
+                    saveButton.buttonStyle(.borderedProminent)
                 }
-
-                Section {
-                    if item.kind == .secret {
-                        TextField("Value", text: $item.content, axis: .vertical)
-                            .font(.body.monospaced())
-                            .lineLimit(1...6)
-                    } else if item.kind == .password {
-                        TextField("Username", text: optional(\.username), prompt: Text("Optional"))
-                        HStack {
-                            Group {
-                                if showPassphrase { TextField("Password", text: $item.content) }
-                                else { SecureField("Password", text: $item.content) }
-                            }
-                            .font(.body.monospaced())
-                            revealButton(show: "Show Password", hide: "Hide Password")
-                        }
-                        TextField("URL", text: optional(\.url), prompt: Text("Optional"))
-                    } else if item.kind == .file {
-                        if let data = item.data {
-                            LabeledContent(item.fileName ?? String(localized: "File"), value: Int64(data.count).formatted(.byteCount(style: .file)))
-                        }
-                        Button(item.data == nil ? "Choose File…" : "Replace File…", systemImage: "doc.badge.plus") { pickingFile = true }
-                        if let fileError {
-                            Text(fileError).font(.caption).foregroundStyle(.red)
-                        }
-                    } else {
-                        TextEditor(text: $item.content)
-                            .font(.body.monospaced())
-                            .frame(minHeight: 160)
-                            .scrollContentBackground(.hidden)
-                            .accessibilityLabel("Content")
-                    }
-                } header: {
-                    HStack {
-                        Text(contentTitle)
-                        Spacer()
-                        if item.kind == .sshKey, item.content.isEmpty {
-                            Button(generating ? "Generating…" : "Generate ed25519", systemImage: "wand.and.stars") { generate() }
-                                .buttonStyle(.borderless)
-                                .disabled(generating)
-                        }
-                    }
-                }
-
-                if item.kind != .secret, item.kind != .env, item.kind != .password {
-                    Section {
-                        HStack {
-                            Group {
-                                if showPassphrase { TextField("Passphrase", text: $passphrase) }
-                                else { SecureField("Passphrase", text: $passphrase) }
-                            }
-                            .font(.body.monospaced())
-                            revealButton(show: "Show Passphrase", hide: "Hide Passphrase")
-                        }
-                    } footer: {
-                        Text(item.kind == .file ? "Password for the file, if it has one (e.g. a .p12)." : "Password to decrypt the key, if it has one.")
-                    }
-                }
-
-                Section("Notes") {
-                    TextField("Notes", text: $item.notes, prompt: Text("Optional"), axis: .vertical)
-                        .lineLimit(2...5)
-                        .labelsHidden()
-                }
+                .padding(16)
             }
-            .formStyle(.grouped)
-
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel) { if isDirty { confirmDiscard = true } else { dismiss() } }
-                    .keyboardShortcut(.cancelAction)
-                Button(draft.isNew ? "Create" : "Save") { save() }
-                    .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!canSave)
+            .frame(width: 520, height: 600)
+            #else
+            NavigationStack {
+                form
+                    .navigationTitle(draft.isNew ? "New Item" : "Edit Item")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) { cancelButton }
+                        ToolbarItem(placement: .confirmationAction) { saveButton }
+                    }
             }
-            .padding(16)
+            #endif
         }
-        .frame(width: 520, height: 600)
         .interactiveDismissDisabled(isDirty)
         .confirmationDialog("Discard Changes?", isPresented: $confirmDiscard) {
             Button("Discard Changes", role: .destructive) { dismiss() }
@@ -161,6 +79,9 @@ struct ItemEditorView: View {
         .alert("Couldn’t Run ssh-keygen", isPresented: $generateFailed) {}
         .fileImporter(isPresented: $pickingFile, allowedContentTypes: [.data]) { result in
             guard let url = try? result.get() else { return }
+            // Files from the picker outside the app's sandbox (iOS) are only readable inside this scope.
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             guard let file = Item.file(at: url) else {
                 let limit = Int64(Item.maxFileBytes).formatted(.byteCount(style: .file))
                 fileError = String(localized: "Couldn’t read the file, or it’s larger than \(limit).")
@@ -171,6 +92,133 @@ struct ItemEditorView: View {
             item.fileName = file.fileName
             if item.name.isEmpty { item.name = file.name }
         }
+    }
+
+    private var cancelButton: some View {
+        Button("Cancel", role: .cancel) { if isDirty { confirmDiscard = true } else { dismiss() } }
+            .keyboardShortcut(.cancelAction)
+    }
+
+    private var saveButton: some View {
+        Button(draft.isNew ? "Create" : "Save") { save() }
+            .keyboardShortcut(.defaultAction)
+            .disabled(!canSave)
+    }
+
+    private var form: some View {
+        Form {
+            Section {
+                Picker("Kind", selection: $item.kind.animation(Motion.standard)) {
+                    ForEach(Item.Kind.allCases, id: \.self) { kind in
+                        Label(kind.singular, systemImage: kind.symbol).tag(kind)
+                    }
+                }
+                TextField("Name", text: $item.name, prompt: Text(namePrompt))
+                if let nameError {
+                    Text(nameError).font(.caption).foregroundStyle(.red)
+                }
+                suggestingField("Project", text: $project, from: store.vault.projects)
+                suggestingField("Folder", text: $folder, from: store.vault.folders)
+            } footer: {
+                Text("A project is what a repository loads. A folder is your own grouping across projects (e.g. Stripe, CI); a .ovaultrc can load a whole folder.")
+            }
+
+            Section {
+                if item.kind == .secret {
+                    TextField("Value", text: $item.content, axis: .vertical)
+                        .font(.body.monospaced())
+                        .lineLimit(1...6)
+                } else if item.kind == .password {
+                    TextField("Username", text: optional(\.username), prompt: Text("Optional"))
+                    HStack {
+                        Group {
+                            if showPassphrase { TextField("Password", text: $item.content) }
+                            else { SecureField("Password", text: $item.content) }
+                        }
+                        .font(.body.monospaced())
+                        revealButton(show: "Show Password", hide: "Hide Password")
+                    }
+                    TextField("URL", text: optional(\.url), prompt: Text("Optional"))
+                } else if item.kind == .file {
+                    if let data = item.data {
+                        LabeledContent(item.fileName ?? String(localized: "File"), value: Int64(data.count).formatted(.byteCount(style: .file)))
+                    }
+                    Button(item.data == nil ? "Choose File…" : "Replace File…", systemImage: "doc.badge.plus") { pickingFile = true }
+                    if let fileError {
+                        Text(fileError).font(.caption).foregroundStyle(.red)
+                    }
+                } else {
+                    TextEditor(text: $item.content)
+                        .font(.body.monospaced())
+                        .frame(minHeight: 160)
+                        .scrollContentBackground(.hidden)
+                        .accessibilityLabel("Content")
+                }
+            } header: {
+                HStack {
+                    Text(contentTitle)
+                    Spacer()
+                    if item.kind == .sshKey, item.content.isEmpty, KeyInfo.canGenerate {
+                        Button(generating ? "Generating…" : "Generate ed25519", systemImage: "wand.and.stars") { generate() }
+                            .buttonStyle(.borderless)
+                            .disabled(generating)
+                    }
+                }
+            }
+
+            if item.kind != .secret, item.kind != .env, item.kind != .password {
+                Section {
+                    HStack {
+                        Group {
+                            if showPassphrase { TextField("Passphrase", text: $passphrase) }
+                            else { SecureField("Passphrase", text: $passphrase) }
+                        }
+                        .font(.body.monospaced())
+                        revealButton(show: "Show Passphrase", hide: "Hide Passphrase")
+                    }
+                } footer: {
+                    Text(item.kind == .file ? "Password for the file, if it has one (e.g. a .p12)." : "Password to decrypt the key, if it has one.")
+                }
+            }
+
+            Section("Notes") {
+                TextField("Notes", text: $item.notes, prompt: Text("Optional"), axis: .vertical)
+                    .lineLimit(2...5)
+                    .labelsHidden()
+            }
+        }
+        .formStyle(.grouped)
+        #if os(iOS)
+        // Names, keys and secrets: autocorrect and capitalization would only corrupt them.
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
+        #endif
+    }
+
+    /// A text field that offers the names already in use: as completions on the Mac, from a menu on iOS.
+    @ViewBuilder
+    private func suggestingField(_ title: LocalizedStringKey, text: Binding<String>, from names: [String]) -> some View {
+        let field = TextField(title, text: text, prompt: Text("Optional"))
+        #if os(macOS)
+        field.textInputSuggestions {
+            ForEach(names.filter { text.wrappedValue.isEmpty || $0.localizedCaseInsensitiveContains(text.wrappedValue) }, id: \.self) {
+                Text($0).textInputCompletion($0)
+            }
+        }
+        #else
+        // iOS forms don't show a text field's title, only its prompt: label it.
+        LabeledContent(title) {
+            field.multilineTextAlignment(.trailing)
+            if !names.isEmpty {
+                Menu {
+                    ForEach(names, id: \.self) { name in Button(name) { text.wrappedValue = name } }
+                } label: {
+                    Image(systemName: "chevron.up.chevron.down")
+                }
+                .accessibilityLabel("Choose Existing")
+            }
+        }
+        #endif
     }
 
     /// Text binding over an optional field: empty text is stored as nil.

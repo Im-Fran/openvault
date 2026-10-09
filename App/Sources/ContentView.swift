@@ -16,6 +16,9 @@ struct ContentView: View {
     @State private var dropTargeted = false
     @AppStorage("groupByProject") private var groupByProject = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    #if os(iOS)
+    @State private var showingSettings = false
+    #endif
 
     private var filtered: [Item] {
         store.vault.items
@@ -37,6 +40,9 @@ struct ContentView: View {
             ItemList(items: filtered, groupByProject: groupByProject && !showsOneProject, selection: $selection)
                 .searchable(text: $search, placement: .sidebar, prompt: "Search")
                 .navigationTitle(title)
+                #if os(iOS)
+                .toolbar { toolbarItems }
+                #endif
         } detail: {
             if let item = store.vault.items.first(where: { $0.id == selection }) {
                 ItemDetailView(item: item)
@@ -46,21 +52,23 @@ struct ContentView: View {
                                        description: Text("Or drag a .env file, an SSH or GPG key, or any file into the window."))
             }
         }
-        .toolbar {
-            ToolbarItem {
-                Toggle("Group by Project", systemImage: "square.stack.3d.up", isOn: $groupByProject.animation(reduceMotion ? nil : Motion.standard))
-                    .help("Group by Project")
-                    .disabled(showsOneProject)
-            }
-            ToolbarItem {
-                Button("New Item", systemImage: "plus") { newItem() }
-                    .help("New Item (⌘N)")
-            }
-            ToolbarItem {
-                Button("Lock", systemImage: "lock") { store.lock() }
-                    .help("Lock (⌘L)")
+        #if os(macOS)
+        .toolbar { toolbarItems }
+        #endif
+        #if os(iOS)
+        .sheet(isPresented: $showingSettings) {
+            NavigationStack {
+                SettingsView()
+                    .navigationTitle("Settings")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showingSettings = false }
+                        }
+                    }
             }
         }
+        #endif
         .sheet(item: Bindable(store).editorDraft) { draft in
             ItemEditorView(draft: draft) { saved in
                 store.save(saved)
@@ -80,6 +88,28 @@ struct ContentView: View {
             }
         }
         .animation(Motion.standard, value: dropTargeted)
+    }
+
+    /// On the Mac they go in the window toolbar; on iOS, on the list (the split view collapses to it).
+    @ToolbarContentBuilder private var toolbarItems: some ToolbarContent {
+        ToolbarItem {
+            Toggle("Group by Project", systemImage: "square.stack.3d.up", isOn: $groupByProject.animation(reduceMotion ? nil : Motion.standard))
+                .help("Group by Project")
+                .disabled(showsOneProject)
+        }
+        ToolbarItem {
+            Button("New Item", systemImage: "plus") { newItem() }
+                .help("New Item (⌘N)")
+        }
+        ToolbarItem {
+            Button("Lock", systemImage: "lock") { store.lock() }
+                .help("Lock (⌘L)")
+        }
+        #if os(iOS)
+        ToolbarItem(placement: .topBarLeading) {
+            Button("Settings", systemImage: "gearshape") { showingSettings = true }
+        }
+        #endif
     }
 
     /// Grouping a single project's items would only repeat the title.
@@ -227,13 +257,19 @@ private struct ItemList: View {
         .animation(Motion.standard, value: items)
         .overlay {
             if items.isEmpty {
+                #if os(macOS)
                 ContentUnavailableView("No Items", systemImage: "tray",
                                        description: Text("Create one with ⌘N or drag a file here."))
+                #else
+                ContentUnavailableView("No Items", systemImage: "tray", description: Text("Tap + to create one."))
+                #endif
             }
         }
+        #if os(macOS)
         .onDeleteCommand {
             pendingDelete = items.first { $0.id == selection }
         }
+        #endif
         .confirmationDialog("Delete “\(pendingDelete?.name ?? "")”?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
                             titleVisibility: .visible) {
             Button("Delete", role: .destructive) {

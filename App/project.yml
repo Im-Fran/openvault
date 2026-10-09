@@ -4,6 +4,7 @@ options:
   developmentLanguage: en
   deploymentTarget:
     macOS: "26.0"
+    iOS: "26.0"
 packages:
   OpenVault:
     path: ..
@@ -24,7 +25,7 @@ settings:
 targets:
   OpenVault:
     type: application
-    platform: macOS
+    supportedDestinations: [macOS, iOS]
     sources:
       - Sources
       - path: AppIcon.icon
@@ -36,6 +37,7 @@ targets:
       - package: OpenVault
         product: OpenVaultCore
       - package: OpenUpdater
+        destinationFilters: [macOS]
     postBuildScripts:
       # Ships the CLI inside the app (Contents/MacOS/ovault) so Settings can install it.
       # Runs before Xcode signs the app, so the outer signature seals it.
@@ -43,6 +45,7 @@ targets:
         basedOnDependencyAnalysis: false
         script: |
           set -euo pipefail
+          [ "$PLATFORM_NAME" = macosx ] || exit 0 # the CLI is a Mac thing
           config=debug; [ "$CONFIGURATION" = Release ] && config=release
           archs=(); for arch in $ARCHS; do archs+=(--arch "$arch"); done
           # Xcode's build settings leak into SwiftPM and break it: build from a clean environment.
@@ -70,3 +73,9 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: OpenVault
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        INFOPLIST_KEY_NSFaceIDUsageDescription: Face ID unlocks your vault without typing the master password.
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        TARGETED_DEVICE_FAMILY: "1,2"

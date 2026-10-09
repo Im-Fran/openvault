@@ -5,11 +5,11 @@
   <img src="assets/brand/svg/lockup-light.svg" width="480" alt="OpenVault">
 </picture>
 
-**A secrets manager for developers on macOS: `.env` files, API keys, SSH and GPG keys in an encrypted vault, with a CLI to use them in your projects.**
+**A secrets manager for developers on macOS, iPhone, and iPad: `.env` files, API keys, SSH and GPG keys in an encrypted vault, with a CLI to use them in your projects.**
 
 [![License](https://img.shields.io/github/license/Im-Fran/openvault)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/Im-Fran/openvault/ci.yml?branch=dev&label=CI)](https://github.com/Im-Fran/openvault/actions)
-![Platform](https://img.shields.io/badge/platform-macOS%2026%2B-lightgrey)
+![Platform](https://img.shields.io/badge/platform-macOS%2026%2B%20%7C%20iOS%2026%2B-lightgrey)
 ![Swift](https://img.shields.io/badge/Swift-6-orange)
 
 </div>
@@ -38,7 +38,9 @@ Both read the same file directly, so the CLI works even when the app is closed, 
 ## ✨ Features
 
 - **Encrypted vault** — AES-256-GCM with a key derived via PBKDF2-SHA256 (600,000 iterations). Nothing is stored in plain text.
-- **Touch ID** — unlock with the key stored in a biometry-protected Keychain item.
+- **Touch ID / Face ID** — unlock with the key stored in a biometry-protected Keychain item.
+- **iPhone and iPad** — the same app on iOS 26+, with Face ID and an auto-lock when the device locks or the app stays in the background.
+- **iCloud sync** — optional (Settings → iCloud): the vault file moves to the app's iCloud Drive container, still encrypted with your master password, so every device sees the same items. The CLI follows the app's setting.
 - **Item types** — `.env` files, individual secrets, passwords (username, password, URL), SSH keys, GPG keys, arbitrary files (`.p12`, `.p8`, JSON… encrypted byte for byte and exportable back to disk), and others.
 - **Projects and folders** — group items by project (optionally shown as sections in the list) and by folder; the CLI loads what a `.ovaultrc` file in the repo selects.
 - **`ovault run`** — run any command with the project's secrets as environment variables.
@@ -154,7 +156,7 @@ Every command accepts `--project <name>` so it doesn't depend on `.ovaultrc`. If
 | Variable | Description |
 |----------|-------------|
 | `OPENVAULT_PASSWORD` | Master password without a prompt (useful in CI). Removed from the environment before `ovault run`. |
-| `OPENVAULT_FILE` | Alternative path to the vault file (app and CLI). |
+| `OPENVAULT_FILE` | Alternative path to the vault file (app and CLI). Turns iCloud sync off. |
 
 ---
 
@@ -167,6 +169,7 @@ In **OpenVault → Settings** (⌘,):
 | Lock After Inactivity | 5 minutes | 1, 5, 15, 60 minutes, or never |
 | Clear Clipboard After | 30 seconds | 15, 30, 60, or 90 seconds |
 | Unlock with Touch ID | On | Requires a signed app and available Touch ID |
+| Sync with iCloud | Off | Keeps the vault in iCloud Drive. If another device already put one there, OpenVault asks for that vault's master password and merges both |
 | Change Master Password | — | Re-encrypts the whole vault with a new salt |
 
 Shortcuts: ⌘N new item, ⌘L lock, ⌫ delete selected item.
@@ -226,6 +229,7 @@ Run `/graphify .` the first time; after that, `/graphify . --update` keeps your 
 - The vault lives at `~/Library/Application Support/OpenVault/vault.ovault`, with `0600` permissions (folder `0700`).
 - The app and the CLI write under an exclusive lock and reread the latest version before modifying, so they don't overwrite each other.
 - When locking, the key is discarded from memory.
+- With iCloud sync on, the vault lives in the app's iCloud container (`~/Library/Mobile Documents/iCloud~cl~franciscosolis~openvault/Documents/`). iCloud only ever stores the encrypted file; when two devices save at once, OpenVault merges their items (the most recent edit wins).
 
 Found a vulnerability? Don't open a public issue: read the [security policy](SECURITY.md) and report it privately.
 
