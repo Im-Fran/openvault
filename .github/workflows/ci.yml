@@ -28,4 +28,7 @@ jobs:
       - run: make project
       - run: >
           xcodebuild -project App/OpenVault.xcodeproj -scheme OpenVault -configuration Release
-          -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+          -destination 'generic/platform=macOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+      - run: >
+          xcodebuild -project App/OpenVault.xcodeproj -scheme OpenVault -configuration Release
+          -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build

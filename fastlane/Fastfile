@@ -57,7 +57,9 @@ platform :mac do
     # Connect API (Account Holder only). If the match repo doesn't have it yet,
     # import it once: `bundle exec fastlane match import --type developer_id`.
     # The profile is ordinary and match creates it when not readonly.
-    match(type: "developer_id", api_key: api_key, readonly: options.fetch(:readonly, is_ci))
+    # force:true regenerates the profile, e.g. after adding a capability (iCloud) to the App ID.
+    match(type: "developer_id", api_key: api_key, readonly: options.fetch(:readonly, is_ci),
+          force: options.fetch(:force, false))
   end
 
   desc "Run the core tests"
@@ -83,6 +85,7 @@ platform :mac do
       build_mac_app(
         project: PROJECT,
         scheme: SCHEME,
+        destination: "generic/platform=macOS", # the target also builds for iOS
         configuration: "Release",
         export_method: "developer-id",
         codesigning_identity: options[:signed] == false ? nil : "Developer ID Application",

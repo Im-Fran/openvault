@@ -86,7 +86,7 @@ En CI match corre en modo solo lectura: el perfil tiene que existir antes (paso 
 
 ### ¿Por qué hace falta un perfil de aprovisionamiento?
 
-La app guarda la clave de Touch ID en el Keychain de *data protection*, que requiere el entitlement `keychain-access-groups` (`App/OpenVault.entitlements`), y en macOS ese entitlement solo es válido con un perfil. No hace falta ninguna *capability* extra en el App ID: los perfiles ya incluyen el grupo `PX7HA29NR3.*`. El lane `release` falla si la app exportada no trae `embedded.provisionprofile`.
+La app guarda la clave de Touch ID en el Keychain de *data protection*, que requiere el entitlement `keychain-access-groups` (`App/OpenVault.entitlements`), y en macOS ese entitlement solo es válido con un perfil. Para el grupo del Keychain no hace falta ninguna *capability* extra: los perfiles ya incluyen `PX7HA29NR3.*`. La sincronización con iCloud sí necesita una: el App ID `cl.franciscosolis.openvault` debe tener **iCloud** (CloudKit) activado con el contenedor `iCloud.cl.franciscosolis.openvault` asignado. Después de cambiar las capabilities del App ID, regenera el perfil con `bundle exec fastlane certificates readonly:false force:true`. El lane `release` falla si la app exportada no trae `embedded.provisionprofile`.
 
 ## DMG
 
