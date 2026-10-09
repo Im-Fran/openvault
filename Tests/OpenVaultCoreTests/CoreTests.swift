@@ -197,3 +197,22 @@ private func tempDir() throws -> URL {
     #expect(items.searched("SHOP").map(\.name) == ["id_ed25519", "stripe_key"])
     #expect(items.searched("secret").isEmpty) // never matches on content
 }
+
+@Test func mergeKeepsBothSidesAndNewestCopy() throws {
+    var a = Item(name: "A", kind: .secret, content: "old")
+    a.updatedAt = Date(timeIntervalSince1970: 1)
+    var newerA = a
+    newerA.content = "new"
+    newerA.updatedAt = Date(timeIntervalSince1970: 2)
+    let b = Item(name: "B", kind: .secret, content: "b")
+
+    let merged = Vault(items: [a]).merged(with: Vault(items: [newerA, b]))
+    #expect(merged.items.map(\.content) == ["new", "b"])
+    #expect(Vault(items: [newerA]).merged(with: Vault(items: [a])).items.map(\.content) == ["new"])
+
+    // save() replaces the file wholesale (copying a vault to or from iCloud).
+    let file = VaultFile(url: try tempDir().appending(path: "vault.ovault"))
+    let key = try file.create(password: "pw")
+    try file.save(merged, key: key)
+    #expect(try file.load(key: key).items.map(\.content) == ["new", "b"])
+}
