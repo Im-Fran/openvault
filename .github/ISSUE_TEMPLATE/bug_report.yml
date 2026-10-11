@@ -1,0 +1,82 @@
+name: 🐛 Bug report
+description: Something in OpenVault or the ovault CLI behaves differently than it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        **Never paste secrets, `.env` contents, vault files or your master password here.**
+        If the bug could expose secrets, report it privately through
+        [Security → Report a vulnerability](https://github.com/Im-Fran/openvault/security/advisories/new) instead.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before reporting
+      options:
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
+        - label: I am running the latest released version of OpenVault.
+          required: true
+        - label: This report contains no secrets or vault contents.
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected to see instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does it happen
+      options:
+        - Mac app
+        - iPhone / iPad app
+        - ovault CLI
+        - .ovaultrc or the shell hook
+        - Touch ID / Face ID, lock and unlock
+        - iCloud sync
+        - Updates
+        - Build or install
+        - Somewhere else / not sure
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: OpenVault version
+      description: From OpenVault → About, `ovault --version`, or the tag you built from.
+      placeholder: "0.5.0"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS version
+      placeholder: "macOS 26.1 / iOS 26.1"
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: CLI output or logs
+      description: Optional. Redact any value before pasting.
+      render: shell
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or anything else
+      description: Make sure no secret values are visible.

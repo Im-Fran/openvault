@@ -1,0 +1,43 @@
+name: ✨ Feature request
+description: Suggest a new item type, CLI command or app behaviour.
+labels: ["enhancement"]
+body:
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before requesting
+      options:
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is missing
+      description: The problem you hit, not the solution you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like instead
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of OpenVault
+      options:
+        - Mac app
+        - iPhone / iPad app
+        - ovault CLI
+        - .ovaultrc or the shell hook
+        - Item types
+        - iCloud sync
+        - Packaging, build or release
+        - Somewhere else / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
