@@ -40,7 +40,7 @@ jobs:
       OPENUPDATER_PRIVATE_KEY: ${{ secrets.OPENUPDATER_PRIVATE_KEY }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
           fetch-depth: 0
