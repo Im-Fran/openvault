@@ -73,6 +73,8 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: OpenVault
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        # Export compliance: only Apple's OS crypto (CryptoKit AES-GCM, CommonCrypto PBKDF2), no bundled crypto.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         INFOPLIST_KEY_NSFaceIDUsageDescription: Face ID unlocks your vault without typing the master password.
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
