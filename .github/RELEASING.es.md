@@ -9,7 +9,10 @@ La firma, compilación, notarización y el DMG los hace **fastlane** (`fastlane/
 - `ovault-<versión>-macos-universal.tar.gz` — el CLI (arm64 + x86_64), firmado y notarizado. Es un tarball a propósito: OpenUpdater toma el primer `.zip` de la release como la actualización de la app, así que cada release debe tener **exactamente un** `.zip`.
 - `checksums.txt` — SHA-256 del DMG, el zip y el tarball.
 
+Las releases salen de `prd`: mergea `dev` en `prd` con un PR y luego crea el tag sobre `prd`. El workflow rechaza un tag cuyo commit no esté en `prd`.
+
 ```sh
+git switch prd && git pull
 git tag v0.1.0        # v0.2.0-beta.1 se publica como pre-release
 git push origin v0.1.0
 ```
