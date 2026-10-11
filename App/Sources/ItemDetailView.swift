@@ -1,6 +1,8 @@
-import AppKit
 import OpenVaultCore
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 struct ItemDetailView: View {
     let item: Item
@@ -8,6 +10,7 @@ struct ItemDetailView: View {
     @State private var revealAll = false
     @State private var ssh: (publicKey: String, fingerprint: String)?
     @State private var gpg: (fingerprint: String, uid: String)?
+    @State private var exportingFile = false
 
     var body: some View {
         Form {
@@ -33,7 +36,9 @@ struct ItemDetailView: View {
                 Section("Private Key") {
                     SecretRow(label: String(localized: "Private Key"), value: item.content, multiline: true)
                     passphraseRow
+                    #if os(macOS)
                     Button("Export to File…", systemImage: "square.and.arrow.up") { exportSSH() }
+                    #endif
                 }
             case .gpgKey:
                 if let gpg {
@@ -57,7 +62,13 @@ struct ItemDetailView: View {
                     LabeledContent("File", value: item.fileName ?? item.name)
                     LabeledContent("Size", value: Int64(item.data?.count ?? 0).formatted(.byteCount(style: .file)))
                     passphraseRow
-                    Button("Save to Disk…", systemImage: "square.and.arrow.down") { exportFile() }
+                    Button("Save to Disk…", systemImage: "square.and.arrow.down") {
+                        #if os(macOS)
+                        exportFile()
+                        #else
+                        exportingFile = true
+                        #endif
+                    }
                 }
             case .other:
                 Section {
@@ -79,9 +90,15 @@ struct ItemDetailView: View {
         }
         .formStyle(.grouped)
         .environment(\.revealAll, revealAll)
+        #if os(macOS)
         .onModifierKeysChanged(mask: .option) { _, keys in
             withAnimation(Motion.standard) { revealAll = keys.contains(.option) }
         }
+        #else
+        .fileExporter(isPresented: $exportingFile, item: item.data ?? Data(), defaultFilename: item.fileName ?? item.name) { result in
+            if case .failure(let error) = result { store.errorMessage = error.localizedDescription }
+        }
+        #endif
         .toolbar {
             ToolbarItem {
                 Button("Edit", systemImage: "pencil") {
@@ -126,9 +143,11 @@ struct ItemDetailView: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
+            #if os(macOS)
             Text("Hold ⌥ to Reveal All")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            #endif
         }
     }
 
@@ -153,6 +172,7 @@ struct ItemDetailView: View {
         }
     }
 
+    #if os(macOS)
     private func exportFile() {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = item.fileName ?? item.name
@@ -177,6 +197,7 @@ struct ItemDetailView: View {
             try? (pub + "\n").write(toFile: url.path + ".pub", atomically: true, encoding: .utf8)
         }
     }
+    #endif
 }
 
 /// A masked value with reveal and copy. Masked unless the eye is toggled or ⌥ is held.

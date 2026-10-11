@@ -14,6 +14,19 @@ public struct Vault: Codable, Sendable, Equatable {
         Array(Set(items.compactMap(\.folder))).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
+    /// Both sets of items; for an item in both, the most recently updated copy wins. Keeps this vault's order.
+    public func merged(with other: Vault) -> Vault {
+        var result = self
+        for item in other.items {
+            if let i = result.items.firstIndex(where: { $0.id == item.id }) {
+                if item.updatedAt > result.items[i].updatedAt { result.items[i] = item }
+            } else {
+                result.items.append(item)
+            }
+        }
+        return result
+    }
+
     public func items(in project: String?) -> [Item] {
         guard let project else { return items }
         return items.filter { $0.project == project }

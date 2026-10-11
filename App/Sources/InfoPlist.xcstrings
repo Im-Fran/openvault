@@ -1,0 +1,17 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSFaceIDUsageDescription": {
+      "comment": "Privacy - Face ID Usage Description",
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face ID desbloquea tu vault sin escribir la contraseña maestra."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

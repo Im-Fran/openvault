@@ -21,6 +21,28 @@ end
 
 default_platform(:mac)
 
+# One App Store Connect key drives match, notarization and TestFlight (both platforms).
+# Locally it is the .p8 on disk; CI passes the same key as a base64 secret.
+private_lane :api_key do
+  key_id = ENV.fetch("ASC_KEY_ID")
+  key_content = ENV["ASC_KEY_CONTENT"]
+
+  if key_content.to_s.empty?
+    app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: File.expand_path("~/.appstoreconnect/private_keys/AuthKey_#{key_id}.p8")
+    )
+  else
+    app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: key_content,
+      is_key_content_base64: true
+    )
+  end
+end
+
 platform :mac do
   before_all do
     # A throwaway keychain on CI: match has nowhere to put certificates
@@ -29,35 +51,15 @@ platform :mac do
     sh("xcodegen", "generate", "--quiet", "--spec", "#{ROOT}/App/project.yml")
   end
 
-  # One App Store Connect key drives match and notarization.
-  # Locally it is the .p8 on disk; CI passes the same key as a base64 secret.
-  private_lane :api_key do
-    key_id = ENV.fetch("ASC_KEY_ID")
-    key_content = ENV["ASC_KEY_CONTENT"]
-
-    if key_content.to_s.empty?
-      app_store_connect_api_key(
-        key_id: key_id,
-        issuer_id: ENV.fetch("ASC_ISSUER_ID"),
-        key_filepath: File.expand_path("~/.appstoreconnect/private_keys/AuthKey_#{key_id}.p8")
-      )
-    else
-      app_store_connect_api_key(
-        key_id: key_id,
-        issuer_id: ENV.fetch("ASC_ISSUER_ID"),
-        key_content: key_content,
-        is_key_content_base64: true
-      )
-    end
-  end
-
   desc "Sync the Developer ID certificate and profile from the match repo"
   lane :certificates do |options|
     # The Developer ID *certificate* cannot be created through the App Store
     # Connect API (Account Holder only). If the match repo doesn't have it yet,
     # import it once: `bundle exec fastlane match import --type developer_id`.
     # The profile is ordinary and match creates it when not readonly.
-    match(type: "developer_id", api_key: api_key, readonly: options.fetch(:readonly, is_ci))
+    # force:true regenerates the profile, e.g. after adding a capability (iCloud) to the App ID.
+    match(type: "developer_id", api_key: api_key, readonly: options.fetch(:readonly, is_ci),
+          force: options.fetch(:force, false))
   end
 
   desc "Run the core tests"
@@ -83,6 +85,7 @@ platform :mac do
       build_mac_app(
         project: PROJECT,
         scheme: SCHEME,
+        destination: "generic/platform=macOS", # the target also builds for iOS
         configuration: "Release",
         export_method: "developer-id",
         codesigning_identity: options[:signed] == false ? nil : "Developer ID Application",
@@ -145,6 +148,49 @@ platform :mac do
       sh("shasum -a 256 *.dmg *.zip *.tar.gz > checksums.txt")
     end
     UI.success("Release artifacts in #{DIST_DIR}")
+  end
+end
+
+platform :ios do
+  before_all do
+    setup_ci if is_ci
+    sh("xcodegen", "generate", "--quiet", "--spec", "#{ROOT}/App/project.yml")
+  end
+
+  desc "Build the iPhone/iPad app and upload it to TestFlight"
+  lane :beta do |options|
+    key = api_key
+    # The Matchfile defaults to macOS (Developer ID); the App Store profile is per platform.
+    match(type: "appstore", platform: "ios", api_key: key, readonly: options.fetch(:readonly, is_ci))
+    profile = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING].values.first
+
+    # Only the app target takes the profile, as on the Mac (package targets fail with one).
+    update_code_signing_settings(
+      path: PROJECT,
+      targets: [SCHEME],
+      use_automatic_signing: false,
+      profile_name: profile,
+      code_sign_identity: "Apple Distribution"
+    )
+
+    # Every upload needs a new build number.
+    build_number = options[:build_number] ||
+                   latest_testflight_build_number(api_key: key, platform: "ios", initial_build_number: 0) + 1
+    ipa = build_app(
+      project: PROJECT,
+      scheme: SCHEME,
+      destination: "generic/platform=iOS",
+      configuration: "Release",
+      export_method: "app-store",
+      derived_data_path: "#{BUILD_DIR}/DerivedData-ios",
+      output_directory: "#{BUILD_DIR}/ios",
+      archive_path: "#{BUILD_DIR}/OpenVault-ios.xcarchive",
+      xcargs: build_xcargs(version: options[:version], build_number: build_number)
+    )
+
+    # Internal testers get it as soon as Apple finishes processing; no review needed.
+    upload_to_testflight(api_key: key, ipa: ipa, skip_waiting_for_build_processing: true)
+    UI.success("Uploaded build #{build_number} to TestFlight")
   end
 end
 

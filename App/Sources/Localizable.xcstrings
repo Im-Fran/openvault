@@ -171,6 +171,16 @@
         }
       }
     },
+    "Another device already keeps a vault in iCloud. Enter its master password to merge this vault into it. From then on, that password unlocks OpenVault on every device.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otro dispositivo ya tiene un vault en iCloud. Ingresa su contraseña maestra para combinar este vault con ese. Desde entonces, esa contraseña desbloquea OpenVault en todos tus dispositivos."
+          }
+        }
+      }
+    },
     "ASCII-Armored Key": {
       "localizations": {
         "es-419": {
@@ -228,6 +238,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Volver (esc)"
+          }
+        }
+      }
+    },
+    "Choose Existing": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir existente"
           }
         }
       }
@@ -608,12 +628,42 @@
         }
       }
     },
+    "Done": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
     "Edit": {
       "localizations": {
         "es-419": {
           "stringUnit": {
             "state": "translated",
             "value": "Editar"
+          }
+        }
+      }
+    },
+    "Edit Item": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar ítem"
+          }
+        }
+      }
+    },
+    "Enter the master password of the vault in iCloud.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingresa la contraseña maestra del vault que está en iCloud."
           }
         }
       }
@@ -658,6 +708,26 @@
         }
       }
     },
+    "iCloud": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud"
+          }
+        }
+      }
+    },
+    "iCloud isn’t available. Sign in to iCloud and turn on iCloud Drive.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud no está disponible. Inicia sesión en iCloud y activa iCloud Drive."
+          }
+        }
+      }
+    },
     "Installed": {
       "localizations": {
         "es-419": {
@@ -678,12 +748,42 @@
         }
       }
     },
+    "Keeps the same vault on your Mac, iPhone, and iPad. It stays encrypted with your master password: Apple can’t read it.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantiene el mismo vault en tu Mac, iPhone y iPad. Sigue cifrado con tu contraseña maestra: Apple no puede leerlo."
+          }
+        }
+      }
+    },
     "Links `ovault` into %@, asking for an administrator password if needed. It updates with the app. Then, in your project: `ovault init` and `ovault run -- <command>`.": {
       "localizations": {
         "es-419": {
           "stringUnit": {
             "state": "translated",
             "value": "Enlaza `ovault` en %@ y pide una contraseña de administrador si hace falta. Se actualiza junto con la app. Luego, en tu proyecto: `ovault init` y `ovault run -- <comando>`."
+          }
+        }
+      }
+    },
+    "Merge": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Combinar"
+          }
+        }
+      }
+    },
+    "Merge with the iCloud Vault": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Combinar con el vault de iCloud"
           }
         }
       }
@@ -729,6 +829,56 @@
         }
       }
     },
+    "Settings": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes"
+          }
+        }
+      }
+    },
+    "Sign in to iCloud and turn on iCloud Drive to keep your vault on all your devices.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia sesión en iCloud y activa iCloud Drive para tener tu vault en todos tus dispositivos."
+          }
+        }
+      }
+    },
+    "Sync with iCloud": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizar con iCloud"
+          }
+        }
+      }
+    },
+    "Tap + to create one.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca + para crear uno."
+          }
+        }
+      }
+    },
+    "The iCloud vault is still downloading. Try again in a moment.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El vault de iCloud aún se está descargando. Vuelve a intentarlo en un momento."
+          }
+        }
+      }
+    },
     "This build of OpenVault doesn’t include the CLI.": {
       "extractionState": "manual",
       "localizations": {
@@ -736,6 +886,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta versión de OpenVault no incluye la CLI."
+          }
+        }
+      }
+    },
+    "Unlock with %@": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquear con %@"
+          }
+        }
+      }
+    },
+    "Use %@ or enter your master password.": {
+      "localizations": {
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa %@ o ingresa tu contraseña maestra."
           }
         }
       }

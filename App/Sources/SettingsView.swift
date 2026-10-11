@@ -8,9 +8,15 @@ struct SettingsView: View {
     @AppStorage("menuBarIcon") private var menuBarIcon = false
     @State private var touchID = true
     @State private var changingPassword = false
+    #if os(macOS)
     @State private var cliInstalled = CLIInstaller.isInstalled
     @State private var cliError: String?
     @State private var confirmReplace = false
+    #endif
+    @State private var syncing = false
+    @State private var iCloudError: String?
+    @State private var askingICloudPassword = false
+    @State private var iCloudPassword = ""
 
     var body: some View {
         Form {
@@ -26,7 +32,7 @@ struct SettingsView: View {
                     ForEach([15, 30, 60, 90], id: \.self) { Text("\($0) seconds").tag($0) }
                 }
                 if Biometrics.isAvailable {
-                    Toggle("Unlock with Touch ID", isOn: $touchID)
+                    Toggle("Unlock with \(Biometrics.name)", isOn: $touchID)
                         .disabled(store.state != .unlocked)
                         .onChange(of: touchID) { _, on in store.setTouchID(on) }
                 }
@@ -34,6 +40,28 @@ struct SettingsView: View {
                     .disabled(store.state != .unlocked)
             }
 
+            Section {
+                Toggle("Sync with iCloud", isOn: Binding(get: { store.iCloudSync }, set: { setICloud($0) }))
+                    .disabled(store.state != .unlocked || store.iCloudURL == nil || syncing)
+                if let iCloudError {
+                    Label {
+                        Text(iCloudError)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+                    }
+                    .font(.callout)
+                }
+            } header: {
+                Text("iCloud")
+            } footer: {
+                if store.iCloudURL == nil {
+                    Text("Sign in to iCloud and turn on iCloud Drive to keep your vault on all your devices.")
+                } else {
+                    Text("Keeps the same vault on your Mac, iPhone, and iPad. It stays encrypted with your master password: Apple can’t read it.")
+                }
+            }
+
+            #if os(macOS)
             Section {
                 Toggle("Show in Menu Bar", isOn: $menuBarIcon)
             } header: {
@@ -76,23 +104,54 @@ struct SettingsView: View {
             } footer: {
                 Text("Links `ovault` into \(CLIInstaller.linkPath), asking for an administrator password if needed. It updates with the app. Then, in your project: `ovault init` and `ovault run -- <command>`.")
             }
+            #endif
         }
         .formStyle(.grouped)
+        #if os(macOS)
         .frame(width: 480)
         .fixedSize(horizontal: false, vertical: true)
+        #endif
         .onAppear {
             touchID = store.touchIDEnabled
+            #if os(macOS)
             cliInstalled = CLIInstaller.isInstalled
+            #endif
         }
         .sheet(isPresented: $changingPassword) { ChangePasswordView() }
+        .alert("Merge with the iCloud Vault", isPresented: $askingICloudPassword) {
+            SecureField("Master Password", text: $iCloudPassword)
+            Button("Merge") { setICloud(true, password: iCloudPassword) }
+            Button("Cancel", role: .cancel) { iCloudPassword = "" }
+        } message: {
+            Text("Another device already keeps a vault in iCloud. Enter its master password to merge this vault into it. From then on, that password unlocks OpenVault on every device.")
+        }
+        #if os(macOS)
         .confirmationDialog("Replace the Existing “ovault”?", isPresented: $confirmReplace) {
             Button("Replace", role: .destructive) { installCLI() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("\(CLIInstaller.linkPath) already exists and isn’t OpenVault’s. Replacing it removes it.")
         }
+        #endif
     }
 
+    private func setICloud(_ on: Bool, password: String? = nil) {
+        syncing = true
+        Task {
+            defer { syncing = false; iCloudPassword = "" }
+            do {
+                try await store.setICloudSync(on, iCloudPassword: password)
+                iCloudError = nil
+            } catch VaultStore.ICloudError.needsPassword {
+                askingICloudPassword = true
+            } catch {
+                iCloudError = error.localizedDescription
+                AccessibilityNotification.Announcement(error.localizedDescription).post()
+            }
+        }
+    }
+
+    #if os(macOS)
     private func installCLI() {
         do {
             try CLIInstaller.install()
@@ -103,8 +162,10 @@ struct SettingsView: View {
         }
         cliInstalled = CLIInstaller.isInstalled
     }
+    #endif
 }
 
+#if os(macOS)
 /// Links /usr/local/bin/ovault to the CLI inside the app bundle, so app updates update it too.
 enum CLIInstaller {
     static let linkPath = "/usr/local/bin/ovault"
@@ -151,6 +212,7 @@ enum CLIInstaller {
         init(_ message: String) { errorDescription = message }
     }
 }
+#endif
 
 private struct ChangePasswordView: View {
     @Environment(VaultStore.self) private var store
@@ -179,7 +241,11 @@ private struct ChangePasswordView: View {
         }
         .textFieldStyle(.roundedBorder)
         .padding(20)
+        #if os(macOS)
         .frame(width: 360)
+        #else
+        .presentationDetents([.medium])
+        #endif
     }
 
     private func change() {

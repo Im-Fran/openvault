@@ -1,12 +1,19 @@
-import AppKit
 import LocalAuthentication
-import LocalAuthenticationEmbeddedUI
 import SwiftUI
+#if os(macOS)
+import LocalAuthenticationEmbeddedUI
+#endif
 
 struct LockView: View {
     @Environment(VaultStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    #if os(macOS)
     @Environment(\.appearsActive) private var appearsActive
+    #else
+    @Environment(\.scenePhase) private var scenePhase
+    /// Face ID is offered once each time the app comes to the front, so cancelling it doesn't loop.
+    @State private var autoPrompted = false
+    #endif
 
     @State private var password = ""
     @State private var confirmation = ""
@@ -14,6 +21,7 @@ struct LockView: View {
     @State private var showError = false
     @State private var working = false
     @FocusState private var focused: Bool
+    @FocusState private var confirmationFocused: Bool
     /// One context per attempt: an evaluated or invalidated LAContext can't be reused.
     @State private var authContext = LAContext()
 
@@ -27,6 +35,7 @@ struct LockView: View {
                 .frame(width: 56, height: 56)
                 .foregroundStyle(Brand.gradient)
                 .accessibilityHidden(true)
+                #if os(macOS)
                 .overlay(alignment: .bottomTrailing) {
                     if showsTouchID {
                         // Inline Touch ID badge, like Passwords: no system dialog, just the sensor glyph.
@@ -40,13 +49,14 @@ struct LockView: View {
                             .accessibilityLabel("Unlock with Touch ID")
                     }
                 }
+                #endif
 
             VStack(spacing: 6) {
                 Text(isSetup ? "Create Your Vault" : "OpenVault Is Locked")
                     .font(.title2.weight(.semibold))
                 Text(isSetup
                      ? "Your master password encrypts all your secrets. It can’t be recovered if you forget it."
-                     : showsTouchID ? "Use Touch ID or enter your master password." : "Enter your master password.")
+                     : showsTouchID ? "Use \(Biometrics.name) or enter your master password." : "Enter your master password.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -56,9 +66,10 @@ struct LockView: View {
             VStack(spacing: 10) {
                 SecureField("Master Password", text: $password)
                     .focused($focused)
-                    .onSubmit(submit)
+                    .onSubmit { if isSetup && confirmation.isEmpty { confirmationFocused = true } else { submit() } }
                 if isSetup {
                     SecureField("Confirm Password", text: $confirmation)
+                        .focused($confirmationFocused)
                         .onSubmit(submit)
                     StrengthMeter(password: password)
                 }
@@ -101,10 +112,20 @@ struct LockView: View {
             .controlSize(.large)
             .keyboardShortcut(.defaultAction)
             .disabled(!canSubmit || working)
+
+            #if os(iOS)
+            if showsTouchID {
+                Button("Unlock with \(Biometrics.name)", systemImage: Biometrics.symbol) {
+                    Task { await store.unlockWithBiometrics() }
+                }
+                .controlSize(.large)
+            }
+            #endif
         }
         .padding(32)
-        .frame(width: 380)
+        .frame(maxWidth: 380)
         .background(.regularMaterial, in: .rect(cornerRadius: 20))
+        .padding(.horizontal)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             LinearGradient(colors: [Color(.brandStart).opacity(0.22), .clear, Color(.brandEnd).opacity(0.18)],
@@ -112,19 +133,32 @@ struct LockView: View {
                 .ignoresSafeArea()
         }
         .animation(Motion.standard, value: isSetup)
+        .sensoryFeedback(.error, trigger: failures)
+        #if os(iOS)
+        .onAppear { focused = !showsTouchID } // the keyboard would cover the Face ID prompt
+        .task(id: scenePhase) {
+            if scenePhase == .background { autoPrompted = false }
+            guard scenePhase == .active, showsTouchID, !autoPrompted else { return }
+            autoPrompted = true
+            await store.unlockWithBiometrics()
+        }
+        #else
         .onAppear { focused = true }
         // Only ask for Touch ID while the window is frontmost; going to the background cancels it.
         // A fresh context swaps in a fresh badge, which starts the evaluation once it's in the window.
         .onChange(of: appearsActive) { appearsActive ? authContext = LAContext() : authContext.invalidate() }
         .onDisappear { authContext.invalidate() }
+        #endif
         .onChange(of: password) { withAnimation(Motion.standard) { showError = false } }
     }
 
+    #if os(macOS)
     /// Called by the badge once it's in a window: evaluating earlier leaves it blank.
     private func evaluateTouchID(_ context: LAContext) {
         guard appearsActive, context === authContext else { return }
         Task { await store.unlockWithBiometrics(context: context) }
     }
+    #endif
 
     private var setupHint: String? {
         guard isSetup, !confirmation.isEmpty, confirmation != password else {
@@ -145,9 +179,7 @@ struct LockView: View {
             if isSetup {
                 do { try await store.create(password: password) } catch { store.errorMessage = error.localizedDescription }
             } else if await !store.unlock(password: password) {
-                // Visual + haptic on the same frame (harmony).
-                NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
-                failures += 1
+                failures += 1 // shake + haptic (sensoryFeedback) on the same frame
                 withAnimation(Motion.standard) { showError = true }
                 AccessibilityNotification.Announcement(String(localized: "Incorrect password")).post()
                 password = ""
@@ -157,6 +189,7 @@ struct LockView: View {
     }
 }
 
+#if os(macOS)
 private struct EmbeddedTouchID: NSViewRepresentable {
     let context: LAContext
     let onAttach: (LAContext) -> Void
@@ -185,6 +218,7 @@ private struct EmbeddedTouchID: NSViewRepresentable {
         }
     }
 }
+#endif
 
 private struct StrengthMeter: View {
     let password: String

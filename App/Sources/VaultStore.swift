@@ -1,7 +1,11 @@
-import AppKit
 import LocalAuthentication
 import OpenVaultCore
 import SwiftUI
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 struct EditorDraft: Identifiable {
     let id = UUID()
@@ -19,15 +23,23 @@ final class VaultStore {
     var editorDraft: EditorDraft?
     var errorMessage: String?
 
-    let file = VaultFile()
+    private(set) var file: VaultFile
+    /// Where the vault goes in iCloud Drive; nil while iCloud is unavailable (signed out, or not resolved yet).
+    private(set) var iCloudURL: URL?
+    private(set) var iCloudSync = VaultFile.settings.bool(forKey: "iCloudSync")
     private var key: VaultKey?
     private var watcher: DispatchSourceFileSystemObject?
     private var lastActivity = Date()
     private var observers: [Any] = []
+    private var query: NSMetadataQuery?
+    private var iCloudHasVault = false
 
     init() {
+        let file = VaultFile()
+        self.file = file
         state = file.exists ? .locked : .setup
         observeActivityAndLockTriggers()
+        Task { await connectICloud() }
     }
 
     // MARK: - Lock / unlock
@@ -54,14 +66,20 @@ final class VaultStore {
     }
 
     func unlockWithBiometrics(context: LAContext = LAContext()) async {
-        guard let raw = await Biometrics.load(reason: String(localized: "unlock OpenVault"), context: context),
-              let key = try? file.key(fromRaw: raw),
-              let vault = try? file.load(key: key)
-        else {
+        guard let raw = await Biometrics.load(reason: String(localized: "unlock OpenVault"), context: context) else {
             biometricsEnrolled = Biometrics.isEnrolled // the key may have been invalidated (new fingerprint)
             return
         }
-        didUnlock(vault: vault, key: key)
+        do {
+            let key = try file.key(fromRaw: raw)
+            didUnlock(vault: try file.load(key: key), key: key)
+        } catch VaultError.wrongPassword {
+            // The master password was changed (maybe on another device): the stored key is stale.
+            Biometrics.delete()
+            biometricsEnrolled = false
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     func lock() {
@@ -122,6 +140,117 @@ final class VaultStore {
         }
     }
 
+    // MARK: - iCloud
+
+    enum ICloudError: LocalizedError {
+        case unavailable, notDownloaded, needsPassword
+
+        var errorDescription: String? {
+            switch self {
+            case .unavailable: String(localized: "iCloud isn’t available. Sign in to iCloud and turn on iCloud Drive.")
+            case .notDownloaded: String(localized: "The iCloud vault is still downloading. Try again in a moment.")
+            case .needsPassword: String(localized: "Enter the master password of the vault in iCloud.")
+            }
+        }
+    }
+
+    /// On: copies this vault to iCloud, or merges it into the vault another device already put there
+    /// (which may have another master password: pass it as `iCloudPassword`, `.needsPassword` asks for it).
+    /// Off: copies the vault back to this device; iCloud keeps its copy for the other devices.
+    func setICloudSync(_ on: Bool, iCloudPassword: String? = nil) async throws {
+        guard let key, on != iCloudSync else { return }
+        let target: VaultFile
+        if on {
+            guard let iCloudURL else { throw ICloudError.unavailable }
+            target = VaultFile(url: iCloudURL)
+            if iCloudHasVault || target.exists {
+                guard target.exists else {
+                    try? FileManager.default.startDownloadingUbiquitousItem(at: iCloudURL)
+                    throw ICloudError.notDownloaded
+                }
+                var cloudKey = key
+                do {
+                    _ = try target.load(key: key)
+                } catch VaultError.wrongPassword {
+                    guard let iCloudPassword else { throw ICloudError.needsPassword }
+                    cloudKey = try await Task.detached { try target.unlock(password: iCloudPassword).1 }.value
+                }
+                let mine = vault
+                vault = try target.update(key: cloudKey) { $0 = $0.merged(with: mine) }
+                if cloudKey.rawData != key.rawData {
+                    self.key = cloudKey
+                    if biometricsEnrolled { biometricsEnrolled = Biometrics.store(cloudKey.rawData) }
+                }
+            } else {
+                try target.save(vault, key: key)
+            }
+        } else {
+            target = VaultFile(url: VaultFile.localURL)
+            try target.save(vault, key: key)
+        }
+        iCloudSync = on
+        VaultFile.settings.set(on, forKey: "iCloudSync")
+        use(target)
+    }
+
+    private func use(_ newFile: VaultFile) {
+        file = newFile
+        if state == .unlocked { watchFile() }
+    }
+
+    private func connectICloud() async {
+        guard ProcessInfo.processInfo.environment["OPENVAULT_FILE"] == nil else { return } // pinned to a file
+        // Can block the first time (it sets the container up), so off the main thread.
+        guard let container = await Task.detached(operation: { FileManager.default.url(forUbiquityContainerIdentifier: nil) }).value
+        else { return }
+        let url = container.appending(path: "Documents/\(VaultFile.fileName)")
+        iCloudURL = url
+        VaultFile.settings.set(url.path, forKey: "iCloudVaultPath") // the CLI follows it
+        if iCloudSync, file.url != url { use(VaultFile(url: url)) }
+
+        // Downloads the vault when another device changes it, and finds the one in iCloud on a new device.
+        let query = NSMetadataQuery()
+        query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
+        query.predicate = NSPredicate(format: "%K == %@", NSMetadataItemFSNameKey, VaultFile.fileName)
+        for name in [Notification.Name.NSMetadataQueryDidFinishGathering, .NSMetadataQueryDidUpdate] {
+            observers.append(NotificationCenter.default.addObserver(forName: name, object: query, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.iCloudChanged() }
+            })
+        }
+        query.start()
+        self.query = query
+    }
+
+    private func iCloudChanged() {
+        guard let query, let iCloudURL else { return }
+        query.disableUpdates()
+        defer { query.enableUpdates() }
+        guard let item = query.results.first as? NSMetadataItem else { return }
+        iCloudHasVault = true
+        if item.value(forAttribute: NSMetadataUbiquitousItemDownloadingStatusKey) as? String != NSMetadataUbiquitousItemDownloadingStatusCurrent {
+            try? FileManager.default.startDownloadingUbiquitousItem(at: iCloudURL)
+        }
+        switch state {
+        case .setup:
+            // A new device: no vault here, but there's one in iCloud. Use it.
+            iCloudSync = true
+            VaultFile.settings.set(true, forKey: "iCloudSync")
+            use(VaultFile(url: iCloudURL))
+            if file.exists { state = .locked }
+        case .unlocked where iCloudSync:
+            if item.value(forAttribute: NSMetadataUbiquitousItemHasUnresolvedConflictsKey) as? Bool == true, let key {
+                do {
+                    if let merged = try file.resolveConflicts(key: key) { vault = merged }
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
+            }
+            reload()
+        default:
+            break
+        }
+    }
+
     private func mutate(_ body: (inout Vault) -> Void) {
         guard let key else { return }
         do {
@@ -146,15 +275,27 @@ final class VaultStore {
         let fd = open(dir, O_EVTONLY)
         guard fd >= 0 else { return }
         let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: .write, queue: .main)
-        source.setEventHandler { [weak self] in
-            guard let self, let key = self.key, let fresh = try? self.file.load(key: key), fresh != self.vault else { return }
-            withAnimation(.spring(duration: 0.35, bounce: 0)) { self.vault = fresh }
-        }
+        source.setEventHandler { [weak self] in self?.reload() }
         source.setCancelHandler { close(fd) }
         source.resume()
+        watcher?.cancel()
         watcher = source
     }
 
+    private func reload() {
+        guard state == .unlocked, let key else { return }
+        do {
+            let fresh = try file.load(key: key)
+            guard fresh != vault else { return }
+            withAnimation(Motion.standard) { vault = fresh }
+        } catch VaultError.wrongPassword {
+            lock() // the master password was changed elsewhere: unlock with the new one
+        } catch {
+            // Mid-download or briefly missing: the next change event reloads it.
+        }
+    }
+
+    #if os(macOS)
     private func observeActivityAndLockTriggers() {
         NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .leftMouseDown, .scrollWheel]) { [weak self] event in
             self?.lastActivity = Date()
@@ -176,4 +317,30 @@ final class VaultStore {
             }
         }
     }
+    #else
+    private var backgroundedAt: Date? = nil
+
+    private func observeActivityAndLockTriggers() {
+        // Locking the iPhone locks the vault.
+        observers.append(NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.lock() }
+        })
+    }
+
+    /// iOS has no idle timer to hook into: "inactivity" is the time spent in the background.
+    /// ponytail: a vault left open in the foreground stays open until the device locks.
+    func scenePhaseChanged(_ phase: ScenePhase) {
+        switch phase {
+        case .background:
+            backgroundedAt = backgroundedAt ?? Date()
+        case .active:
+            defer { backgroundedAt = nil }
+            let minutes = UserDefaults.standard.object(forKey: "autoLockMinutes") as? Int ?? 5
+            if minutes > 0, let since = backgroundedAt, Date().timeIntervalSince(since) > Double(minutes * 60) { lock() }
+        default:
+            break
+        }
+    }
+    #endif
 }

@@ -1,12 +1,22 @@
-import AppKit
-import OpenUpdater
 import OpenVaultCore
 import SwiftUI
+#if os(macOS)
+import AppKit
+import OpenUpdater
+#endif
 
 @main
 struct OpenVaultApp: App {
-    @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @State private var store = VaultStore()
+
+    #if os(iOS)
+    var body: some Scene {
+        WindowGroup {
+            RootView().environment(store)
+        }
+    }
+    #else
+    @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @AppStorage("menuBarIcon") private var menuBarIcon = false
     @AppStorage("groupByProject") private var groupByProject = false
     @State private var updater = Updater(repo: "Im-Fran/openvault", publicKey: "2gpjUv7A+kW83D8XgmvznGoNPLNZRfoLNjDSIohJioM=")
@@ -64,10 +74,14 @@ struct OpenVaultApp: App {
         }
         .menuBarExtraStyle(.window)
     }
+    #endif
 }
 
 private struct RootView: View {
     @Environment(VaultStore.self) private var store
+    #if os(iOS)
+    @Environment(\.scenePhase) private var scenePhase
+    #endif
 
     var body: some View {
         ZStack {
@@ -88,8 +102,21 @@ private struct RootView: View {
         } message: {
             Text(store.errorMessage ?? "")
         }
+        #if os(iOS)
+        // Keeps secrets out of the app switcher snapshot.
+        .overlay {
+            if scenePhase != .active && store.state == .unlocked {
+                Rectangle().fill(.regularMaterial).ignoresSafeArea()
+                    .overlay { Image(.brandMark).resizable().frame(width: 56, height: 56).foregroundStyle(Brand.gradient) }
+                    .accessibilityHidden(true)
+            }
+        }
+        .onChange(of: scenePhase) { store.scenePhaseChanged(scenePhase) }
+        #endif
     }
 }
+
+#if os(macOS)
 
 /// Background mode: with the menu bar icon on, closing the last window hides the app from the
 /// Dock and ⌘Tab; it stays reachable from the menu bar. Any regular window brings the Dock back.
@@ -129,3 +156,4 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let window = note.object as? NSWindow, Self.isRegular(window) { Self.showInDock() }
     }
 }
+#endif

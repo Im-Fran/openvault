@@ -7,5 +7,18 @@
 	<array>
 		<string>$(AppIdentifierPrefix)cl.franciscosolis.openvault</string>
 	</array>
+	<!-- iCloud Drive container holding the (still encrypted) vault when sync is on. -->
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.cl.franciscosolis.openvault</string>
+	</array>
+	<key>com.apple.developer.ubiquity-container-identifiers</key>
+	<array>
+		<string>iCloud.cl.franciscosolis.openvault</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudDocuments</string>
+	</array>
 </dict>
 </plist>

@@ -1,6 +1,10 @@
-import AppKit
 import OpenVaultCore
 import SwiftUI
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 extension Item.Kind {
     var title: String {
@@ -94,19 +98,26 @@ enum Clipboard {
     /// Copies and marks the value as concealed (clipboard managers skip it), then clears it
     /// after the configured delay — only if nothing else was copied meanwhile.
     static func copy(_ string: String) {
+        let seconds = UserDefaults.standard.object(forKey: "clipboardSeconds") as? Int ?? 30
+        #if os(macOS)
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.setString(string, forType: .string)
         pb.setString("", forType: .init("org.nspasteboard.ConcealedType"))
         let change = pb.changeCount
-        let seconds = UserDefaults.standard.object(forKey: "clipboardSeconds") as? Int ?? 30
         Task {
             try? await Task.sleep(for: .seconds(seconds))
             if pb.changeCount == change { pb.clearContents() }
         }
+        #else
+        // Local only (no Universal Clipboard to other devices) and expires on its own.
+        UIPasteboard.general.setItems([[UIPasteboard.typeAutomatic: string]],
+                                      options: [.localOnly: true, .expirationDate: Date.now.addingTimeInterval(Double(seconds))])
+        #endif
     }
 }
 
+#if os(macOS)
 /// Runs a developer tool (ssh-keygen, gpg). GUI apps don't inherit the shell PATH, so look in the usual places.
 enum Tool {
     static func run(_ name: String, _ args: [String], input: String? = nil) async -> String? {
@@ -161,6 +172,8 @@ enum KeyInfo {
         return (String(fpr), String(uid))
     }
 
+    static let canGenerate = true
+
     /// New ed25519 key pair via ssh-keygen.
     static func generateSSH(comment: String, passphrase: String) async -> String? {
         await Tool.withTempDir { dir in
@@ -171,3 +184,12 @@ enum KeyInfo {
         }
     }
 }
+#else
+/// iOS has no ssh-keygen or gpg to run: key details and generation are Mac-only.
+enum KeyInfo {
+    static let canGenerate = false
+    static func ssh(privateKey: String, passphrase: String?) async -> (publicKey: String, fingerprint: String)? { nil }
+    static func gpg(armored: String) async -> (fingerprint: String, uid: String)? { nil }
+    static func generateSSH(comment: String, passphrase: String) async -> String? { nil }
+}
+#endif

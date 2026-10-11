@@ -86,7 +86,22 @@ In CI, match runs in read-only mode: the profile must already exist (step 3).
 
 ### Why is a provisioning profile needed?
 
-The app stores the Touch ID key in the *data protection* Keychain, which requires the `keychain-access-groups` entitlement (`App/OpenVault.entitlements`), and on macOS that entitlement is only valid with a profile. No extra *capability* is needed on the App ID: the profiles already include the `PX7HA29NR3.*` group. The `release` lane fails if the exported app doesn't contain `embedded.provisionprofile`.
+The app stores the Touch ID key in the *data protection* Keychain, which requires the `keychain-access-groups` entitlement (`App/OpenVault.entitlements`), and on macOS that entitlement is only valid with a profile. For the Keychain group no extra *capability* is needed: the profiles already include `PX7HA29NR3.*`. iCloud sync does need one: the App ID `cl.franciscosolis.openvault` must have **iCloud** (CloudKit) enabled with the container `iCloud.cl.franciscosolis.openvault` assigned. After changing the App ID's capabilities, regenerate the profile with `bundle exec fastlane certificates readonly:false force:true`. The `release` lane fails if the exported app doesn't contain `embedded.provisionprofile`.
+
+## iPhone and iPad (TestFlight)
+
+The Mac ships outside the App Store (Developer ID, no sandbox); the iOS app goes through TestFlight.
+
+1. Once: create the app in App Store Connect → *Apps* → **+** → *New App* (platform iOS, bundle ID `cl.franciscosolis.openvault`). The API can't create apps.
+2. Upload a build:
+
+   ```bash
+   bundle exec fastlane ios beta readonly:false   # first time: match creates the App Store profile
+   bundle exec fastlane ios beta                  # after that
+   ```
+
+   It takes the next build number from TestFlight. Options: `version:` (marketing version), `build_number:`.
+3. In App Store Connect → *TestFlight*, answer the export compliance question for the build and add yourself to an internal group.
 
 ## DMG
 
