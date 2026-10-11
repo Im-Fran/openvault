@@ -8,6 +8,7 @@ name: Release
 # The build number is the workflow run number. The tag must be exactly the app
 # version: OpenUpdater compares tags against CFBundleShortVersionString.
 # A tag with "-" (v1.5.0-beta.1) is published as a pre-release.
+# Tags are cut from prd: the job refuses a tag whose commit isn't on prd.
 on:
   push:
     tags: ["*"]
@@ -42,6 +43,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Require the tag to be on prd
+        run: |
+          git fetch --no-tags origin prd
+          if ! git merge-base --is-ancestor HEAD FETCH_HEAD; then
+            echo "The tagged commit is not on prd. Merge dev into prd and tag prd." >&2
+            exit 1
+          fi
 
       # The tag reaches the shell through the environment, never interpolated
       # into the script: a ref name is attacker-shaped input.

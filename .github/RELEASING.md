@@ -9,7 +9,10 @@ Signing, building, notarization and the DMG are handled by **fastlane** (`fastla
 - `ovault-<version>-macos-universal.tar.gz` — the CLI (arm64 + x86_64), signed and notarized. It's a tarball on purpose: OpenUpdater takes the first `.zip` in a release as the app update, so a release must have **exactly one** `.zip`.
 - `checksums.txt` — SHA-256 of the DMG, the zip and the tarball.
 
+Releases are cut from `prd`: merge `dev` into `prd` with a PR, then tag `prd`. The workflow refuses a tag whose commit isn't on `prd`.
+
 ```sh
+git switch prd && git pull
 git tag v0.1.0        # v0.2.0-beta.1 is published as a pre-release
 git push origin v0.1.0
 ```
