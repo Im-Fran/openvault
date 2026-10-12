@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/Im-Fran/openvault/security/advisories/new
+    about: OpenVault stores secrets. Report vulnerabilities privately, never as a public issue.
+  - name: 💻 CLI usage and .ovaultrc
+    url: https://github.com/Im-Fran/openvault#-cli-usage
+    about: How ovault, .ovaultrc selectors and the shell hook work.
