@@ -13,8 +13,8 @@ Las releases salen de `prd`: mergea `dev` en `prd` con un PR y luego crea el tag
 
 ```sh
 git switch prd && git pull
-git tag v0.1.0        # v0.2.0-beta.1 se publica como pre-release
-git push origin v0.1.0
+git tag 0.1.0         # 0.2.0-beta.1 se publica como pre-release
+git push origin 0.1.0
 ```
 
 La versión del tag se usa como `MARKETING_VERSION` de la app y como `ovault --version`, y el build number es el número de ejecución del workflow. El tag debe ser **exactamente** la versión (sin sufijo `+build`): OpenUpdater lo compara con la versión de la app instalada, y si no coinciden la actualización nunca se ofrece o se ofrece en bucle.
@@ -119,4 +119,4 @@ swiftc -O packaging/dmg-background.swift -o /tmp/bggen && /tmp/bggen packaging
 - **match no encuentra el certificado**: falta importarlo (paso 2) o `MATCH_PASSWORD` no es el del repo.
 - **`No profile matching` / no hay perfil**: corre `bundle exec fastlane certificates readonly:false` en local.
 - **Notarización rechazada**: el log sale en la salida del lane (`print_log: true`).
-- Para reintentar una release fallida: borra el tag (`git push --delete origin v0.1.0 && git tag -d v0.1.0`) y vuelve a crearlo, o usa *Run workflow* con el tag existente.
+- Para reintentar una release fallida: borra el tag (`git push --delete origin 0.1.0 && git tag -d 0.1.0`) y vuelve a crearlo, o usa *Run workflow* con el tag existente.

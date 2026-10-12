@@ -4,10 +4,11 @@ name: Release
 # signature from the match repo, notarizes them, packages the DMG and publishes
 # a GitHub Release. Setup and secrets: .github/RELEASING.md.
 #
-# Tag format: <version>, with an optional leading "v" (v1.4.0, v1.5.0-beta.1).
+# Tag format: the bare version, as the App Store and OpenUpdater show it (1.4.0, 1.5.0-beta.1).
+# A leading "v" is still accepted for tags cut before 0.6.0.
 # The build number is the workflow run number. The tag must be exactly the app
 # version: OpenUpdater compares tags against CFBundleShortVersionString.
-# A tag with "-" (v1.5.0-beta.1) is published as a pre-release.
+# A tag with "-" (1.5.0-beta.1) is published as a pre-release.
 # Tags are cut from prd: the job refuses a tag whose commit isn't on prd.
 on:
   push:
@@ -15,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to build, e.g. v0.1.0"
+        description: "Existing tag to build, e.g. 0.6.0"
         required: true
 
 concurrency:
