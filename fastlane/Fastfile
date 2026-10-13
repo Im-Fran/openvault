@@ -85,7 +85,10 @@ platform :mac do
       build_mac_app(
         project: PROJECT,
         scheme: SCHEME,
-        destination: "generic/platform=macOS", # the target also builds for iOS
+        # The target also builds for iOS: without sdk, gym treats a multiplatform
+        # project as iOS and looks for an .ipa after exporting.
+        sdk: "macosx",
+        destination: "generic/platform=macOS",
         configuration: "Release",
         export_method: "developer-id",
         codesigning_identity: options[:signed] == false ? nil : "Developer ID Application",
